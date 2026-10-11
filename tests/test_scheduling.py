@@ -55,6 +55,15 @@ class ScheduleTests(unittest.TestCase):
         plans=scheduling.windows(self.binding(),{"sunday":[{"from":time(22),"to":time.max}]},now,[],28)
         self.assertEqual(plans[0].end-plans[0].start,7200)
 
+    def test_touching_overnight_blocks_keep_original_arrival_time(self):
+        now=datetime.fromisoformat("2026-10-11T22:00:00-04:00")
+        weekly={"sunday":[{"from":"23:30","to":"24:00"}],
+                "monday":[{"from":"00:00","to":"01:30"}]}
+        plans=scheduling.windows(self.binding(),weekly,now,[],28)
+        upcoming=next(p for p in plans if p.start>now.timestamp())
+        self.assertEqual(upcoming.end-upcoming.start,7200)
+        self.assertEqual(datetime.fromtimestamp(upcoming.start,now.tzinfo).hour,23)
+
     def test_dst_spring_gap_resolves_to_real_local_time(self):
         try:zone=ZoneInfo("America/New_York")
         except Exception:self.skipTest("Timezone database unavailable")

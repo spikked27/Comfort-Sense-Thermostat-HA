@@ -1,6 +1,6 @@
 """Native HA weekly schedule blocks and compatibility migration, without HA I/O."""
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, time, timedelta, timezone
 import math
 
@@ -87,7 +87,14 @@ def windows(binding, weekly, now_local, rooms, safety_limit):
                 raise ValueError("Invalid schedule block")
             result.append(Window(binding["id"],binding["entity_id"],binding["name"],source,target,
                                  start,end,binding["preheat"],int(binding["priority"])))
-    return result
+    merged=[]
+    for window in sorted(result,key=lambda w:w.start):
+        if merged and merged[-1].end==window.start and all(
+            getattr(merged[-1],key)==getattr(window,key) for key in ("binding_id","source","target","preheat","priority")):
+            merged[-1]=replace(merged[-1],end=window.end)
+        else:
+            merged.append(window)
+    return merged
 
 
 def choose(plans):
