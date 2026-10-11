@@ -37,7 +37,9 @@ synthetic test does not establish household performance.
 
 The release checker parses Python and JSON, validates matching manifest/HACS
 metadata and English strings, and rejects unexpected executable/data artifacts.
-The release ZIP includes only integration source and localization, without caches
+It also verifies brand PNG dimensions and transparency, local README links, and
+the HACS install-link parameters. The release ZIP includes integration source,
+localization and bundled HA icons, without caches
 or household data. This is currently an alpha package, not a published HACS listing.
 
 The repository links use the chosen Comfort-Sense-Thermostat-HA project. Use

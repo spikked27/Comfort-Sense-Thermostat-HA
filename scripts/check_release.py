@@ -1,7 +1,10 @@
 """Bounded source/metadata checks; no external services or HA writes."""
 import ast
 import json
+import re
+import struct
 from pathlib import Path
+from urllib.parse import urlparse, parse_qs, unquote
 
 ROOT=Path(__file__).resolve().parents[1]
 COMPONENT=ROOT/'custom_components/comfort_sense'
@@ -25,8 +28,29 @@ def main():
         assert set(strings[section]['step'])=={'system','manage','room','review'}
     for path in COMPONENT.rglob('*'):
         if path.is_file() and '__pycache__' not in path.parts:
-            assert path.suffix in ('.py','.json'), f'Unexpected integration artifact: {path.name}'
-    print('Python syntax, JSON, metadata, English strings and integration contents validated.')
+            assert path.suffix in ('.py','.json','.png'), f'Unexpected integration artifact: {path.name}'
+            if path.suffix=='.png':
+                assert path.parent==COMPONENT/'brand', 'Brand images belong in brand/'
+    for path,size in [(COMPONENT/'brand/icon.png',256), (COMPONENT/'brand/icon@2x.png',512),
+                      (ROOT/'docs/assets/logo.png',512)]:
+        header=path.read_bytes()[:33]
+        assert header[:8]==b'\x89PNG\r\n\x1a\n', f'Invalid PNG: {path.name}'
+        assert struct.unpack('>II',header[16:24])==(size,size), f'Wrong icon dimensions: {path.name}'
+        assert header[25]==6, f'RGBA transparency expected: {path.name}'
+    readme=(ROOT/'README.md').read_text(encoding='utf-8')
+    links=re.findall(r'(?:src|href)="([^"]+)"|\]\(([^)]+)\)',readme)
+    hacs_links=[]
+    for pair in links:
+        target=next(v for v in pair if v).replace('&amp;','&')
+        if target.startswith('https://my.home-assistant.io/redirect/hacs_repository/'):
+            hacs_links.append(target)
+        if not urlparse(target).scheme and not target.startswith('#'):
+            assert (ROOT/unquote(target.split('#',1)[0])).exists(), f'Missing README target: {target}'
+    assert hacs_links, 'README needs an install-in-HACS link'
+    for target in hacs_links:
+        assert parse_qs(urlparse(target).query)=={
+            'owner':['spikked27'],'repository':['Comfort-Sense-Thermostat-HA'],'category':['integration']}
+    print('Source, metadata, brand PNGs, README assets and HACS links validated.')
 
 
 if __name__=='__main__':main()

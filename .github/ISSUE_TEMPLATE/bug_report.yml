@@ -1,0 +1,38 @@
+name: Report a problem
+description: Help diagnose an installation, sensor, control or learning problem.
+title: "[Bug]: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: "Please redact room names and entity IDs where needed. Do not attach credentials, complete HA configurations or household histories."
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Comfort Sense Thermostat and Home Assistant versions.
+      placeholder: "Comfort Sense 0.1.0a1; Home Assistant 2026.10.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      options:
+        - Shadow
+        - Active control
+        - Installation / not configured
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Explain what you expected, what happened and how to reproduce it.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Redacted diagnostics
+      description: Relevant control status, learning status, excluded sensors or HA log excerpts.

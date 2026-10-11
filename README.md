@@ -1,106 +1,113 @@
-# Comfort Sense Thermostat
+<p align="center">
+  <img src="docs/assets/logo.png" alt="Comfort Sense Thermostat logo" width="160" />
+</p>
 
-Room-aware adaptive heating for Home Assistant. **0.1.0a1 — experimental alpha.**
+<h1 align="center">Comfort Sense Thermostat</h1>
 
-One integration replaces a switching temperature template, an occupancy history
-sensor chain, and a separate PID thermostat. It controls one heating relay for a
-shared heating zone. Configure everything from **Settings → Devices & services**.
+<p align="center"><strong>Comfort in the rooms you use. Warmth when you need it.</strong><br />
+Room-aware heating for Home Assistant, with gradual occupancy changes and learning for slow heating systems.</p>
 
-- Add rooms and choose one or more temperature and binary occupancy sensors in each.
-- Occupancy builds over minutes and decays gradually. Room demand changes smoothly.
-- Each room has its own PID controller, with independently selectable **Manual** or
-  **Automatic validated tuning**. Manual Kp/Ki/Kd remain editable in either mode;
-  they provide fallback settings while automatic mode collects adequate data.
-- **Average has its own PID controller and thermal model**, with independent gains
-  and tuning mode. It controls the equal-room average in Away, Boost, manual Average,
-  and Auto when no room has meaningful occupancy. It does not average PID outputs.
-- Away can follow a person, tracker, binary home sensor, or home-zone person count,
-  after a configurable delay. Unknown presence never means confirmed absence.
-- Boost raises the target for a bounded duration. Morning schedules specify room,
-  weekdays, target temperature, arrival time, and how long to maintain comfort.
-- Passive models learn heating response, outdoor heat loss, and delivery delay from
-  normal operation. No oscillating relay autotune experiment is required.
-- Anti-windup, filtered derivative on each measured temperature, coast prediction,
-  minimum on/off times, and low-demand pulse accumulation limit avoidable overshoot.
-- Diagnostics show actual versus proposed relay state, room weights, excluded
-  sensors, applied/recommended gains, model quality, and deadline feasibility.
+<p align="center">
+  <a href="https://github.com/spikked27/Comfort-Sense-Thermostat-HA/actions/workflows/validate.yml"><img src="https://github.com/spikked27/Comfort-Sense-Thermostat-HA/actions/workflows/validate.yml/badge.svg" alt="Validation status" /></a>
+  <img src="https://img.shields.io/badge/Home_Assistant-2026.10%2B-18BCF2" alt="Home Assistant 2026.10 or newer" />
+  <img src="https://img.shields.io/badge/HACS-custom_repository-41BDF5" alt="HACS custom repository" />
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT license" /></a>
+  <img src="https://img.shields.io/badge/status-alpha-orange" alt="Experimental alpha" />
+</p>
 
-## Installation
+<p align="center">
+  <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=spikked27&amp;repository=Comfort-Sense-Thermostat-HA&amp;category=integration"><img src="https://my.home-assistant.io/badges/hacs_repository.svg" alt="Add Comfort Sense Thermostat to HACS" /></a>
+</p>
 
-Repository: [Comfort Sense Thermostat](https://github.com/spikked27/Comfort-Sense-Thermostat-HA). Install from the alpha source or a tagged release:
+<p align="center"><a href="docs/GETTING_STARTED.md">Getting started</a> · <a href="docs/USER_GUIDE.md">User guide</a> · <a href="docs/MIGRATION.md">Switching from Smart Thermostat</a> · <a href="https://github.com/spikked27/Comfort-Sense-Thermostat-HA/issues">Help &amp; issues</a></p>
 
-1. Add its URL in HACS → Custom repositories → Integration, install, and restart HA.
-   Alternatively copy `custom_components/comfort_sense` into `/config/custom_components`.
-2. Add **Comfort Sense Thermostat** in Devices & services. Choose your heating switch. Leave
-   **Shadow mode** enabled while evaluating behavior alongside the existing controller.
-3. Choose an outdoor temperature sensor to enable passive thermal identification.
-   Outdoor measurements are optional for manual PID operation.
-4. Add rooms and their sensors. Set comfort and morning temperatures, schedule days,
-   and PID mode/gains separately for each room. Average gains are in system settings.
-5. Review the entry. The thermostat initially starts Off. Select Heat to compute
-   demands in shadow mode; shadow mode never calls the heater switch.
-6. After reviewing diagnostics, disable the existing relay controller and its
-   controlling automations. Turn shadow mode off in Comfort Sense Thermostat options, then select
-   Heat again. Options reloads and HA restarts start Off in this alpha.
+## What it does
 
-Use Home Assistant **2026.10 or newer**. Standalone algorithm tests use Python 3.12+;
-Home Assistant's own Python version requirements also apply to live installation.
+Most thermostats measure one spot in your home. Comfort Sense uses the rooms you
+actually spend time in. Add your room temperature and occupancy sensors, choose
+comfort targets, and let room priority build and fade gradually as you move around.
+You can also pin a room or use the whole-home average.
 
-## Daily controls
-
-The climate entity offers Heat/Off and Comfort/Away/Sleep/Boost presets. The main
-temperature dial sets all room comfort targets and returns to Comfort. Individual
-room number entities adjust a room's comfort target. The source select offers Auto,
-Average, and each room. Sleep can pin a room, selected in system options.
-
-Setup and number fields use **Celsius**, explicitly labelled. Climate and temperature
-sensor display conversion follows HA settings. Fahrenheit and Kelvin input sensors
-are converted to Celsius before control; missing unit metadata is rejected.
-
-Morning schedules run in HA's local timezone. Sleep allows morning warm-up; Away
-suppresses it, and manual Boost temporarily overrides schedules. Scheduled rooms
-have priority over occupancy until their morning hold expires. Unreachable targets
-are reported and lead time is capped; the schedule cannot guarantee an exact arrival
-temperature under changing weather, insufficient heat output, or conflicting rooms.
-
-With one shared relay, all rooms receive heat together. This integration cannot
-independently control incompatible room targets without additional zone hardware.
-
-## Tuning and learning
-
-Manual mode honors that controller's user-supplied gains. Automatic mode collects
-normal heater observations and only adopts a model after training and held-out
-prediction gates pass. Models also support warm-up scheduling in Manual mode.
-
-Normalized duty is 0–1 and the internal temperature unit is Celsius:
-
-| Setting | Units |
+| Feature | What it means for you |
 |---|---|
-| Kp | duty / °C |
-| Ki | duty / (°C · second) |
-| Kd | duty · second / °C |
+| **Room-aware comfort** | Each room has its own sensors and target. Occupancy changes gradually, avoiding rapid switching. |
+| **A proper Average mode** | An equal-room average has its own PID controller and tuning settings, including in Away mode. |
+| **Your choice of tuning** | Choose manual PID or automatic validated tuning independently for each room and Average. |
+| **Learning for slow heat** | Learns from ordinary heating, rather than forcing a rapid on/off autotune experiment. |
+| **Outdoor temperature** | Helps estimate heat loss and how early a room needs to start warming. |
+| **Morning comfort** | Choose a temperature and arrival time; the planner estimates the required warm-up lead. |
+| **Away, Sleep and Boost** | Use a lower away target, focus on a sleeping room, or apply a temporary boost. |
+| **Try it alongside your thermostat** | Shadow mode calculates demand and learns without commanding your heater. |
 
-The shipped manual defaults are conservative starting points, **not a universal
-tune**. All gains are selectable. Automatically identified first-order models use
-conservative SIMC-style PI recommendations; their derivative gain is zero. Manual
-mode supports a nonzero Kd and filters measurement derivatives over ten minutes.
+Comfort Sense controls **one heating switch for one shared heating zone**. All rooms
+receive heat together; independent targets guide priority but cannot create separate
+heating zones. Operation and learning stay local to Home Assistant.
 
-Never directly copy Smart Thermostat's percentage-based Fahrenheit gains. When its
-output is 0–100 and its input is Fahrenheit, multiply Kp, Ki and Kd by **0.018** to
-express equivalent normalized Celsius gains. This converts units; it does not make
-the original tune suitable for this controller.
+## Install with HACS
 
-See [control design](docs/CONTROL.md), [migration](docs/MIGRATION.md),
-[testing and release](docs/TESTING.md), and [contributing](CONTRIBUTING.md).
+[![Add Comfort Sense Thermostat to HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=spikked27&repository=Comfort-Sense-Thermostat-HA&category=integration)
 
-## Current verification status
+1. Click the button above and open your Home Assistant instance.
+2. Add the repository when prompted, then **download Comfort Sense Thermostat** in HACS.
+3. **Restart Home Assistant.**
+4. Go to **Settings → Devices & services → Helpers → Create helper** and choose
+   **Comfort Sense Thermostat**.
+5. Choose your heating switch, outdoor temperature sensor, and home-presence source.
+   Keep **Shadow mode enabled**, then add your rooms and their sensors.
+6. Review the setup and select **Heat** on the new thermostat to start shadow evaluation.
 
-**39 deterministic/mocked-boundary tests and six real Home Assistant integration
-tests pass in GitHub's Linux CI.** Setup, room options, dedicated Average settings,
-duplicate/invalid configuration, Shadow unload and active shutdown are exercised.
-No live heating control was deployed or changed during development. Field comfort,
-warm-up timing and overshoot remain to be measured on an actual heating system.
+**Requirements:** Home Assistant 2026.10+, HACS for button installation, one heating
+switch, and at least one room temperature sensor. Occupancy and home-presence sensors
+enable room priority and automatic Away. Outdoor temperature enables thermal learning;
+manual PID works without it.
 
-Household archives, credentials, and private audit reports are outside this project.
-The integration keeps a bounded local learning buffer in HA `.storage`; treat it
-as private household data. MIT licensed, with original control implementation.
+If the button cannot open your instance, add
+https://github.com/spikked27/Comfort-Sense-Thermostat-HA through **HACS → Custom
+repositories**, choose **Integration**, and download it. This is a custom repository;
+it is not yet included in the default HACS catalog.
+
+[Full installation, manual installation, and troubleshooting →](docs/GETTING_STARTED.md)
+
+> [!IMPORTANT]
+> **Experimental alpha — start in Shadow mode.** Active control needs commissioning
+> on your heating system. HA restarts and options reloads leave the thermostat **Off**
+> in this alpha; select Heat to resume. Disable the previous controller before
+> turning Shadow off. Setup temperatures use **Celsius**, even when the climate card
+> displays Fahrenheit.
+
+## Everyday use
+
+| Control | Use it for |
+|---|---|
+| **Thermostat card** | Heat/Off, the comfort target, and Comfort/Away/Sleep/Boost presets. |
+| **Temperature source** | Auto, Average, or a particular room. |
+| **Room comfort target** | Adjusting one room without changing the others. |
+| **Room and Average temperature sensors** | Readings, learning status and excluded sensors. |
+| **Heat demand and Control status** | Understanding heat requests and Shadow behavior. |
+
+The main thermostat dial changes every room's **comfort** target. Individual room
+controls refine those targets. Away uses its lower configured target and the dedicated
+Average controller. Boost expires automatically after its chosen duration.
+
+For morning warm-up, choose the room, weekdays, target, and time you want it ready.
+For example, **“Living room, 21°C, weekdays at 07:00”** means *aim to be comfortable
+at 07:00*, rather than *switch the heater on at 07:00*. Lead times remain estimates;
+changing weather and heating capacity can affect the result.
+
+[Presets, schedules, tuning choices and diagnostics explained →](docs/USER_GUIDE.md)
+
+## Documentation and support
+
+- [Getting started](docs/GETTING_STARTED.md) — installation, first room and commissioning.
+- [User guide](docs/USER_GUIDE.md) — controls, schedules, tuning and common questions.
+- [Migration](docs/MIGRATION.md) — replace Smart Thermostat and room templates.
+- [Control design](docs/CONTROL.md) — PID units, thermal models and learning quality gates.
+- [Verification](docs/TESTING.md) — 39 control/runtime tests and six real HA integration tests.
+- [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Security and privacy](SECURITY.md).
+
+For help, [open an issue](https://github.com/spikked27/Comfort-Sense-Thermostat-HA/issues/new/choose)
+with your version, symptoms and redacted diagnostics. Keep household histories and
+credentials out of public reports. Field comfort and warm-up performance still need
+validation on real heating systems.
+
+MIT licensed. An independent community project, not an official Home Assistant integration.
