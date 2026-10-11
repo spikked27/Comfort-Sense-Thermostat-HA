@@ -22,7 +22,7 @@ async def test_user_room_review_and_setup(hass):
     assert result["step_id"]=="manage"
     result=await hass.config_entries.flow.async_configure(result["flow_id"],{"action":"add"})
     assert result["step_id"]=="room"
-    r=room();r.pop("id");r["tuning_mode"]="auto"
+    r={k:v for k,v in room().items() if k in ("name","temperature_sensors","occupancy_sensors","tuning_mode")};r["tuning_mode"]="auto"
     result=await hass.config_entries.flow.async_configure(result["flow_id"],r)
     assert result["step_id"]=="manage"
     result=await hass.config_entries.flow.async_configure(result["flow_id"],{"action":"finish"})
@@ -77,8 +77,11 @@ async def test_room_options_update_manual_fallback_without_changing_average(hass
     assert result["step_id"]=="init"
     result=await hass.config_entries.options.async_configure(result["flow_id"],{"next_step_id":"manage"})
     result=await hass.config_entries.options.async_configure(result["flow_id"],{"action":"edit:study"})
-    update=room();update.pop("id")
-    update.update(kp=0.35,tuning_mode="auto")
+    update={k:v for k,v in room().items() if k in ("name","temperature_sensors","occupancy_sensors","tuning_mode")}
+    result=await hass.config_entries.options.async_configure(result["flow_id"],update)
+    result=await hass.config_entries.options.async_configure(result["flow_id"],{"kp":0.35,"ki":0.000035,"kd":0})
+    result=await hass.config_entries.options.async_configure(result["flow_id"],{"action":"edit:study"})
+    update["tuning_mode"]="auto"
     result=await hass.config_entries.options.async_configure(result["flow_id"],update)
     result=await hass.config_entries.options.async_configure(result["flow_id"],{"action":"finish"})
     result=await hass.config_entries.options.async_configure(result["flow_id"],{})

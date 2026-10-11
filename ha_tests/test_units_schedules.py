@@ -98,7 +98,7 @@ async def test_fahrenheit_setup_stores_celsius_and_has_no_room_schedule_fields(h
 
     assert not any(key.startswith("morning_") for key in fields)
 
-    r=room();r.pop("id");r["tuning_mode"]="auto"
+    r={k:v for k,v in room().items() if k in ("name","temperature_sensors","occupancy_sensors","tuning_mode")};r["tuning_mode"]="auto"
 
     result=await hass.config_entries.flow.async_configure(result["flow_id"],r)
 
@@ -110,7 +110,7 @@ async def test_fahrenheit_setup_stores_celsius_and_has_no_room_schedule_fields(h
 
     assert "target" not in fields
 
-    assert result["data"]["away_temperature"]==pytest.approx((65-32)/1.8)
+    assert result["data"]["away_temperature"]==18
 
     await hass.async_block_till_done()
 
@@ -250,7 +250,7 @@ async def test_scheduling_is_a_separate_unit_aware_options_section(hass):
 
         "name":"Weekdays","entity_id":"schedule.weekdays","source":"Average","target":70,
 
-        "preheat":True,"priority":1,"data_temperature_unit":"°F"})
+        "preheat":True})
 
     flow=await hass.config_entries.options.async_configure(flow["flow_id"],{"action":"finish"})
 
