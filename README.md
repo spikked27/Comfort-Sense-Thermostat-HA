@@ -97,6 +97,8 @@ remain estimates; changing weather and heating capacity can affect the result.
 
 [Presets, schedules, tuning choices and diagnostics explained →](docs/USER_GUIDE.md)
 
+[Dashboard cards for active room, temperatures and occupancy →](docs/DASHBOARD.md)
+
 ## Documentation and support
 
 - [Getting started](docs/GETTING_STARTED.md) — installation, first room and commissioning.
