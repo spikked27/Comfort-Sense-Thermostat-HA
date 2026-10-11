@@ -2,6 +2,7 @@
 import pytest
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.helpers import entity_registry as er
+from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 DOMAIN="comfort_sense"
@@ -75,3 +76,22 @@ async def test_active_room_occupancy_and_duty_entities(hass):
     demand=hass.states.get("sensor.test_heat_heat_demand")
     assert demand.attributes["cycle_minutes"]==20
     assert demand.attributes["nominal_on_minutes"]==pytest.approx(float(demand.state)/100*20,abs=0.02)
+
+
+async def test_fahrenheit_presets_are_configured_separately(hass):
+    hass.config.units=US_CUSTOMARY_SYSTEM
+    hass.states.async_set("switch.heat","off")
+    hass.states.async_set("sensor.study","68",{"unit_of_measurement":"°F"})
+    entry=MockConfigEntry(domain=DOMAIN,version=3,data={"heater":"switch.heat","shadow":True,"rooms":[room()]})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    flow=await hass.config_entries.options.async_init(entry.entry_id)
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{"next_step_id":"advanced"})
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{"next_step_id":"presets"})
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{"away_temperature":65,"sleep_temperature":65,"boost_temperature":72,"boost_minutes":60,"away_delay_minutes":20,"sleep_room":""})
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{"next_step_id":"init"})
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{"next_step_id":"review"})
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{})
+    assert entry.options["away_temperature"]==pytest.approx((65-32)/1.8)
+    assert entry.options["boost_temperature"]==pytest.approx((72-32)/1.8)
+    await hass.async_block_till_done()

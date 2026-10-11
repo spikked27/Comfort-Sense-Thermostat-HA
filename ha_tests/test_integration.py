@@ -62,7 +62,7 @@ async def test_invalid_room_rejected(hass):
     flow=await hass.config_entries.flow.async_init(DOMAIN,context={"source":SOURCE_USER})
     flow=await hass.config_entries.flow.async_configure(flow["flow_id"],{"name":"Test","heater":"switch.heat","shadow":True})
     flow=await hass.config_entries.flow.async_configure(flow["flow_id"],{"action":"add"})
-    r=room();r.pop("id");r["name"]="Average"
+    r={k:v for k,v in room().items() if k in ("name","temperature_sensors","occupancy_sensors","tuning_mode")};r["name"]="Average"
     result=await hass.config_entries.flow.async_configure(flow["flow_id"],r)
     assert result["errors"]["base"]=="invalid_room"
 
