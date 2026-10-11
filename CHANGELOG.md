@@ -7,4 +7,5 @@ priority, per-room manual/automatic PID, independent Average PID and model, Away
 and timed Boost, weekday room warm-up deadlines, passive slow-system identification,
 relay guards, shadow observations, diagnostic entities, setup/options flow and tests.
 
-Local core and mocked runtime tests pass. Real HA CI and field validation pending.
+39 core/runtime tests and six real HA integration tests pass in Linux CI.
+Field commissioning and comfort-performance validation remain pending.

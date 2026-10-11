@@ -22,12 +22,13 @@ pip install pytest-homeassistant-custom-component 'homeassistant>=2026.10.0,<202
 python -m pytest ha_tests -v
 ```
 
-These integration tests exercise the actual config flow, setup/unload, duplicate
-heater checks and invalid-room handling. CI runs them separately so local HA fakes
-cannot contaminate real HA imports. **They have not yet been executed locally**;
-the available Windows runtime is Python 3.12 and cannot host current HA.
+Six integration tests exercise the actual config flow, setup/unload, duplicate
+heater checks, invalid-room handling, independent room/Average options, and active
+shutdown. They pass in Linux GitHub CI alongside 39 core/runtime tests. CI runs
+them separately so local HA fakes cannot contaminate real HA imports. The available
+Windows runtime is Python 3.12; real HA verification was performed on Linux.
 
-Before a stable release, run Linux CI, install in a development HA instance, test
+Before a stable release, install in a development HA instance, test broader
 options/edit/remove/reload and Fahrenheit display conversion, and gather shadow
 evidence on a real slow heating system. Then commission one relay with the existing
 controller disabled and measure temperature overshoot, arrival-time error, cycle

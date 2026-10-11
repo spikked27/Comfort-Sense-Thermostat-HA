@@ -95,10 +95,11 @@ See [control design](docs/CONTROL.md), [migration](docs/MIGRATION.md),
 
 ## Current verification status
 
-The local deterministic and mocked-boundary suite passes. Real Home Assistant
-integration tests are supplied for Linux CI and have **not yet run in this Windows
-workspace**. No live heating control was deployed or changed during development.
-Field performance, noise tolerance, and release compatibility remain to be verified.
+**39 deterministic/mocked-boundary tests and six real Home Assistant integration
+tests pass in GitHub's Linux CI.** Setup, room options, dedicated Average settings,
+duplicate/invalid configuration, Shadow unload and active shutdown are exercised.
+No live heating control was deployed or changed during development. Field comfort,
+warm-up timing and overshoot remain to be measured on an actual heating system.
 
 Household archives, credentials, and private audit reports are outside this project.
 The integration keeps a bounded local learning buffer in HA `.storage`; treat it
