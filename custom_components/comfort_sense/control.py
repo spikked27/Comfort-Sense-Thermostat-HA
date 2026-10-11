@@ -1,5 +1,6 @@
 """Deterministic controls. Time in seconds, temperature in C, duty in [0, 1]."""
 from dataclasses import dataclass
+from collections import deque
 import math
 
 
@@ -40,6 +41,26 @@ def presence(state):
 @dataclass
 class Occupancy:
     score: float = 0.0
+    history: object = None
+    elapsed: float = 0.0
+
+    def moving_average(self, occupied, dt, window=1800):
+        """Time-weighted presence over a fixed window; startup history is empty.
+
+        A fully occupied old room and newly occupied room cross at half a window.
+        Repeated events within one tick never add sample-count bias.
+        """
+        if self.history is None:
+            self.history = deque()
+        dt = max(0, dt)
+        self.elapsed += dt
+        if dt:
+            self.history.append((self.elapsed-dt, self.elapsed, float(bool(occupied))))
+        cutoff = self.elapsed-window
+        while self.history and self.history[0][1] <= cutoff:
+            self.history.popleft()
+        self.score = sum((end-max(start, cutoff))*value for start,end,value in self.history)/window
+        return self.score
 
     def update(self, occupied, dt, rise=300, decay=1800):
         # Unavailable occupancy decays; never masquerades as confirmed home absence.
@@ -49,17 +70,17 @@ class Occupancy:
         return self.score
 
 
-def weights(scores, valid, average=False, selected="Auto"):
+def weights(scores, valid, average=False, selected="Auto", previous=None):
     if not valid:
         return {}
     if selected not in ("Auto", "Average"):
         return {selected: 1.0} if selected in valid else {}
     if average or selected == "Average" or sum(scores.get(r, 0) for r in valid) < 0.05:
         return {r: 1 / len(valid) for r in valid}
-    # Squaring favors the most occupied room without abrupt pair/room changes.
-    raw = {r: scores.get(r, 0.0) ** 2 for r in valid}
-    total = sum(raw.values())
-    return {r: v / total for r, v in raw.items()}
+    maximum = max(scores.get(r, 0) for r in valid)
+    # Keep the current room at a tie instead of oscillating between equal scores.
+    winner = previous if previous in valid and scores.get(previous,0) >= maximum-1e-9 else max(valid,key=lambda r:scores.get(r,0))
+    return {winner: 1.0}
 
 
 @dataclass

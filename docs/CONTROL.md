@@ -2,12 +2,14 @@
 
 ## Occupancy and measurement
 
-Every room has a score between zero and one. Any selected occupancy sensor reporting
-On raises it with a five-minute exponential time constant by default. Off or unknown
-occupancy decays it over thirty minutes. Scores are updated using elapsed time,
-then squared and normalized to favor the most occupied room gradually. No arbitrary
-pair-of-rooms thresholds are needed. No significant occupancy falls back to Average;
-this is distinct from Away, which requires a confirmed home-absence signal.
+Each room has a time-weighted moving occupancy average over 10, 30 or 60 minutes
+(Fast, Medium or Slow). Any selected binary sensor On counts as occupied; unavailable
+occupancy is treated as no positive evidence and is flagged in diagnostics. The
+highest valid-room score receives full control priority. Ties retain the current
+room. A fully occupied old room and newly occupied room cross after half a window;
+intermittent sensor events naturally change that time. Startup assumes no history.
+Scores below a combined 0.05 fall back to Average. Confirmed home absence selects
+Away independently. Every ordinary source uses the single thermostat comfort setpoint.
 
 A room uses the median of valid temperature readings (the midpoint for an even
 number). This resists one outlier when at least three independent sensors are
@@ -19,15 +21,13 @@ data cannot be diagnosed automatically; prefer physical sensor entities.
 
 Room controllers use their own measurements. The algorithm never differentiates a
 temperature that abruptly switches from one room to another. This removes source
-changes as false temperature slopes. Room demand is occupancy weighted when multiple
-rooms are in use. Manual room selection gives that room full priority.
+changes as false temperature slopes. Auto activates only the winning room PID. Manual room selection gives that room full priority.
 
 ## Dedicated Average controller
 
 Average is an equal-room mean, rather than a mean over all physical sensors. A room
 with three sensors has the same house-average weight as a room with one sensor.
-The average target is the mean of included room targets, or the common Away/Boost
-target when those presets apply. Average has independent Kp/Ki/Kd and Manual/Automatic
+The average follows the thermostat setpoint, or the active preset/schedule target. Average has independent Kp/Ki/Kd and Manual/Automatic
 tuning. Its controller produces the output directly, rather than averaging room PID
 outputs. Automatic no-occupancy fallback also uses this controller.
 

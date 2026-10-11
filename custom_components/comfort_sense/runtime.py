@@ -36,6 +36,9 @@ class Runtime:
         self.segments = {r["id"]: 0 for r in self.plants}
         self.training_valid = {r["id"]: False for r in self.plants}
         self.models, self.learning_status, self.targets = {}, {}, {}
+        self.comfort_temperature = self.config["comfort_temperature"]
+        self.active_source = "Average"
+        self.auto_room = None
         self.applied = {}
         self.relay = Relay(self.config["pwm_seconds"], self.config["min_on_seconds"], self.config["min_off_seconds"])
         self.mode, self.preset, self.source = "off", "comfort", "Auto"
@@ -68,6 +71,11 @@ class Runtime:
             self.source = "Auto"
         self.targets = {k: float(v) for k, v in saved.get("targets", {}).items()
                         if k in self.pids and math.isfinite(float(v)) and 5 <= float(v) < self.config["max_temperature"]}
+        previous = saved.get("comfort_temperature")
+        if previous is None:
+            previous = next((self.targets[r["id"]] for r in self.rooms if r["id"] in self.targets), self.comfort_temperature)
+        if isinstance(previous,(int,float)) and math.isfinite(previous) and 5 <= previous < self.config["max_temperature"]:
+            self.comfort_temperature = previous
         now = dt_util.utcnow().timestamp()
         for r in self.plants:
             rid = r["id"]
@@ -180,9 +188,9 @@ class Runtime:
                 for window in candidates:
                     if window.start>now+self.config["max_preheat_minutes"]*60 and window is not upcoming:
                         continue
-                    selection=weights(scores,valid,selected=window.source)
+                    selection=weights(scores,valid,selected=window.source,previous=self.auto_room)
                     temperature=sum(self.room_data[rid]["temperature"]*weight for rid,weight in selection.items()) if selection else None
-                    model=self.model(window.source,now) if window.source not in ("Auto","Average") else (
+                    model=self.model(next(iter(selection)),now) if window.source=="Auto" and len(selection)==1 and sum(scores.get(rid,0) for rid in valid)>=0.05 else self.model(window.source,now) if window.source not in ("Auto","Average") else (
                         self.model(AVERAGE,now) if len(valid)==len(self.rooms) and (window.source=="Average" or sum(scores.get(rid,0) for rid in valid)<0.05) else None)
                     prediction=(deadline_plan(now,window.start,window.end-window.start,temperature,
                         window.target,model,self.outdoor,self.config["fallback_heat_rate"],self.config["max_preheat_minutes"]*60)
@@ -239,9 +247,9 @@ class Runtime:
                 temperature = (temperatures[(size-1)//2] + temperatures[size//2])/2 if size else None
                 states = [self.hass.states.get(e) for e in room["occupancy_sensors"]]
                 occupied = any(s and s.state == "on" for s in states)
-                scores[rid] = self.occupancy[rid].update(occupied, dt,
-                    self.config["occupancy_rise_minutes"]*60, self.config["occupancy_decay_minutes"]*60)
-                target = self.targets.get(rid, room["target"])
+                scores[rid] = self.occupancy[rid].moving_average(occupied, dt,
+                    {"fast":600,"medium":1800,"slow":3600}[self.config["reaction_time"]])
+                target = self.comfort_temperature
                 if away:
                     target = self.config["away_temperature"]
                 elif self.preset == "sleep":
@@ -255,6 +263,8 @@ class Runtime:
                 if temperature is not None:
                     valid.append(rid)
             source = self.source
+            auto_selection = weights(scores,valid,previous=self.auto_room)
+            self.auto_room = next(iter(auto_selection)) if len(auto_selection)==1 else None
             if self.preset == "sleep" and self.config["sleep_room"] and not away:
                 source = self.config["sleep_room"]
             scheduled=self.plan_schedules(now,valid,scores,away)
@@ -273,13 +283,14 @@ class Runtime:
                             self.room_data[rid]["target"]=plan["target"]
                             self.room_data[rid]["schedule"]=plan
             selected = weights(scores, valid, average=away or self.preset == "boost",
-                               selected="Average" if away or self.preset == "boost" else source)
+                               selected="Average" if away or self.preset == "boost" else source,previous=self.auto_room)
             if scheduled and all(p["source"] not in ("Auto","Average") for p in scheduled):
                 selected = {rid: 1/len(scheduled_rooms) for rid in scheduled_rooms}
             average_control = not scheduled_rooms and (away or self.preset == "boost" or source == "Average" or
                               source == "Auto" and sum(scores.get(rid,0) for rid in valid) < 0.05)
+            self.active_source = "Average" if average_control and selected else ", ".join(r["name"] for r in self.rooms if r["id"] in selected) if selected else "Unavailable"
             self.current_temperature = sum(self.room_data[rid]["temperature"] * w for rid,w in selected.items()) if selected else None
-            self.target_temperature = sum(self.room_data[rid]["target"] * w for rid,w in selected.items()) if selected else None
+            self.target_temperature = sum(self.room_data[rid]["target"] * w for rid,w in selected.items()) if selected else self.comfort_temperature
             reason = "Away average" if away else ("Schedule preheat" if any(p["phase"]=="preheat" for p in scheduled)
                 else "Scheduled comfort") if scheduled else "Room control"
             forced = self.mode == "off" or not selected or high_temperature or self.actual is None
@@ -405,7 +416,7 @@ class Runtime:
         self.notify()
 
     def saved(self):
-        return {"preset": self.preset, "source": self.source, "targets": self.targets,
+        return {"preset": self.preset, "source": self.source, "comfort_temperature":self.comfort_temperature,
                 "models": {k:v.to_dict() for k,v in self.models.items()},
                 "samples": {k:[asdict(s) for s in v] for k,v in self.samples.items()},
                 "signatures": {r["id"]: self.signature(r) for r in self.plants}}

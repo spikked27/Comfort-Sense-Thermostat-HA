@@ -9,7 +9,7 @@ def validate(config):
     if not str(config.get("heater", "")).startswith("switch."):
         raise ValueError("A switch heater is required")
     for key, low, high in [
-        ("away_temperature", 5, 27), ("boost_temperature", 5, 27),
+        ("comfort_temperature", 5, 27), ("away_temperature", 5, 27), ("boost_temperature", 5, 27),
         ("sleep_temperature", 5, 27), ("boost_minutes", 1, 240),
         ("occupancy_rise_minutes", 1, 60), ("occupancy_decay_minutes", 1, 180),
         ("away_delay_minutes", 0, 180), ("sensor_timeout_minutes", 5, 1440),
@@ -25,6 +25,8 @@ def validate(config):
     if config["pwm_seconds"] < config["min_on_seconds"] + config["min_off_seconds"]:
         raise ValueError("PWM must cover minimum on and off periods")
     rooms = config.get("rooms", [])
+    if config["reaction_time"] not in ("fast","medium","slow"):
+        raise ValueError("Choose Fast, Medium or Slow occupancy reaction")
     if config["average_tuning_mode"] not in ("manual", "auto"):
         raise ValueError("Choose manual or automatic average tuning")
     if not rooms or len(rooms) > 20:
@@ -44,9 +46,6 @@ def validate(config):
         names.add(room["name"])
         if not room.get("temperature_sensors"):
             raise ValueError("Every room needs a temperature sensor")
-        for key in ("target",):
-            if not math.isfinite(float(room[key])) or not 5 <= room[key] < config["max_temperature"]:
-                raise ValueError("Room targets must be below the safety limit")
     schedule_ids=set()
     for binding in config["schedules"]:
         if binding["id"] in schedule_ids or not binding["name"].strip():
@@ -62,6 +61,6 @@ def validate(config):
             raise ValueError("Invalid schedule settings")
     if config["sleep_room"] and config["sleep_room"] not in ids:
         raise ValueError("Sleep room no longer exists")
-    if max(config[k] for k in ("away_temperature", "boost_temperature", "sleep_temperature")) >= config["max_temperature"]:
+    if max(config[k] for k in ("comfort_temperature", "away_temperature", "boost_temperature", "sleep_temperature")) >= config["max_temperature"]:
         raise ValueError("Preset targets must be below safety limit")
     return config

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0a1
+
+- One thermostat setpoint follows the winning room in Auto; remove obsolete room targets.
+- Fast/Medium/Slow reaction uses 10/30/60-minute moving occupancy windows.
+- Add Active room and per-room occupancy sensors for dashboard status/history.
+- Reduce basic setup to six fields and room setup to four; move optional settings to Advanced.
+- Show manual gains only when selected; simplify schedule connections.
+- Expose heat-demand cycle length and nominal on-time for clearer diagnostics.
+- Migrate existing entries and the saved main setpoint while preserving room IDs and learning.
+
 ## 0.2.0a1
 
 - Show Comfort Sense in Integrations instead of classifying it as a Helper.

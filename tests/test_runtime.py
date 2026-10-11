@@ -325,5 +325,34 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertGreaterEqual(len(new.samples["a"]),2)
         await new.stop()
 
+    async def test_auto_follows_one_room_with_single_target_and_medium_delay(self):
+        self.r.mode="heat"
+        self.r.comfort_temperature=22.5
+        self.set("binary_sensor.a","on")
+        self.set("binary_sensor.b","off")
+        for _ in range(60):
+            self.advance(30);await self.r.tick()
+        self.assertEqual(self.r.active_source,"A")
+        self.assertEqual(self.r.current_temperature,20)
+        self.set("binary_sensor.a","off");self.set("binary_sensor.b","on")
+        for _ in range(30):
+            self.advance(30);await self.r.tick()
+        self.assertEqual(self.r.active_source,"A")
+        self.advance(30);await self.r.tick()
+        self.assertEqual(self.r.active_source,"B")
+        self.assertEqual(self.r.target_temperature,22.5)
+        self.assertEqual(self.r.current_temperature,22)
+        await self.r.change(source="Average")
+        self.assertEqual(self.r.active_source,"Average")
+        self.assertEqual(self.r.target_temperature,22.5)
+
+    async def test_legacy_saved_target_becomes_one_setpoint_on_restart(self):
+        self.r.store.data={"targets":{"a":22,"b":19},"preset":"comfort"}
+        await self.r.start()
+        self.assertEqual(self.r.comfort_temperature,22)
+        self.assertEqual(self.r.target_temperature,22)
+        self.assertNotIn("targets",self.r.saved())
+        await self.r.stop()
+
 
 if __name__=="__main__":unittest.main()

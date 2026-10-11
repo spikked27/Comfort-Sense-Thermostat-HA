@@ -25,12 +25,12 @@ Room-aware heating for Home Assistant, with gradual occupancy changes and learni
 
 Most thermostats measure one spot in your home. Comfort Sense uses the rooms you
 actually spend time in. Add your room temperature and occupancy sensors, choose
-comfort targets, and let room priority build and fade gradually as you move around.
+one thermostat target, and let Auto follow the most occupied room using a moving occupancy window.
 You can also pin a room or use the whole-home average.
 
 | Feature | What it means for you |
 |---|---|
-| **Room-aware comfort** | Each room has its own sensors and target. Occupancy changes gradually, avoiding rapid switching. |
+| **Room-aware comfort** | One thermostat target follows the most occupied room. Fast/Medium/Slow reaction controls switching; Medium uses a 30-minute occupancy window. |
 | **A proper Average mode** | An equal-room average has its own PID controller and tuning settings, including in Away mode. |
 | **Your choice of tuning** | Choose manual PID or automatic validated tuning independently for each room and Average. |
 | **Learning for slow heat** | Learns from ordinary heating, rather than forcing a rapid on/off autotune experiment. |
@@ -40,8 +40,7 @@ You can also pin a room or use the whole-home average.
 | **Try it alongside your thermostat** | Shadow mode calculates demand and learns without commanding your heater. |
 
 Comfort Sense controls **one heating switch for one shared heating zone**. All rooms
-receive heat together; independent targets guide priority but cannot create separate
-heating zones. Operation and learning stay local to Home Assistant.
+receive heat together; Auto follows one room at a time. Independent heating zones need separate hardware. Operation and learning stay local to Home Assistant.
 
 ## Install with HACS
 
@@ -72,7 +71,7 @@ it is not yet included in the default HACS catalog.
 > **Experimental alpha — start in Shadow mode.** Active control needs commissioning
 > on your heating system. HA restarts and options reloads leave the thermostat **Off**
 > in this alpha; select Heat to resume. Disable the previous controller before
-> turning Shadow off. Setup fields, room targets and the climate card use your
+> turning Shadow off. Temperature fields and the climate card use your
 > Home Assistant **Celsius or Fahrenheit** preference.
 
 ## Everyday use
@@ -81,14 +80,12 @@ it is not yet included in the default HACS catalog.
 |---|---|
 | **Thermostat card** | Heat/Off, the comfort target, and Comfort/Away/Sleep/Boost presets. |
 | **Temperature source** | Auto, Average, or a particular room. |
-| **Room comfort target** | Adjusting one room without changing the others. |
+| **Active room and Room occupancy** | Seeing which room Auto follows and its recent occupancy score. |
 | **Native Schedule helpers** | Editing weekly time blocks separately from equipment and room settings. |
 | **Room and Average temperature sensors** | Readings, learning status and excluded sensors. |
 | **Heat demand and Control status** | Understanding heat requests and Shadow behavior. |
 
-The main thermostat dial changes every room's **comfort** target. Individual room
-controls refine those targets. Away uses its lower configured target and the dedicated
-Average controller. Boost expires automatically after its chosen duration.
+The thermostat dial sets one **comfort target**, carried across Auto, pinned rooms and Average. Away uses its configured target and the dedicated Average controller. Boost expires automatically. Basic setup has six fields; presets, relay limits and Average PID live in **Configure → Advanced**.
 
 For morning warm-up, create a **Schedule helper** using HA's weekly time-block
 editor, then connect it under **Comfort Sense → Configure → Scheduling**. Choose

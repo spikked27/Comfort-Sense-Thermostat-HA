@@ -3,8 +3,8 @@
   "config": {
     "step": {
       "system": {
-        "title": "Equipment and Average PID",
-        "description": "Temperature fields use {temperature_unit}, following Home Assistant. Shadow mode observes without commanding heat. Schedules are configured separately.",
+        "title": "Thermostat basics",
+        "description": "Choose your relay and optional outdoor/home sensors. Medium uses 30 minutes of occupancy history, giving about 15 minutes before a sustained room change. Set the temperature on the thermostat card. Shadow mode observes without operating the relay.",
         "data": {
           "name": "Name",
           "heater": "Heating relay switch",
@@ -27,7 +27,9 @@
           "min_on_seconds": "Minimum relay on time (seconds)",
           "min_off_seconds": "Minimum relay off time (seconds)",
           "pwm_seconds": "Slow PWM period (seconds)",
-          "sleep_room": "Sleep temperature source"
+          "sleep_room": "Sleep temperature source",
+          "reaction_time": "Occupancy reaction time",
+          "comfort_temperature": "Default thermostat target"
         }
       },
       "manage": {
@@ -39,7 +41,7 @@
       },
       "room": {
         "title": "Room sensors and PID",
-        "description": "Temperatures use {temperature_unit}. Select this room’s sensors, comfort target and tuning mode. Configure weekly timing separately under Scheduling.",
+        "description": "Select room sensors and PID tuning. Every room follows the single thermostat setpoint. Automatic tuning learns from normal heating; manual gains are on the next page.",
         "data": {
           "name": "Room name",
           "temperature_sensors": "Temperature sensors",
@@ -61,10 +63,11 @@
       "init": {
         "title": "Configure Comfort Sense Thermostat",
         "menu_options": {
-          "system": "Equipment and Average PID",
+          "system": "Thermostat basics",
           "manage": "Rooms",
           "schedules": "Scheduling",
-          "review": "Review and save"
+          "review": "Review and save",
+          "advanced": "Advanced (optional)"
         }
       },
       "schedules": {
@@ -94,21 +97,88 @@
           "max_preheat_minutes": "Maximum preheat (minutes)",
           "fallback_heat_rate": "Fallback warm-up rate"
         }
+      },
+      "room_gains": {
+        "title": "Manual PID for {room}",
+        "description": "Leave the conservative defaults if unsure. Gains use Celsius internally, regardless of display units. Automatic tuning is available in the room settings.",
+        "data": {
+          "kp": "Manual Kp (duty/°C)",
+          "ki": "Manual Ki (duty/°C/s)",
+          "kd": "Manual Kd (duty·s/°C)"
+        }
+      },
+      "advanced": {
+        "title": "Advanced settings",
+        "description": "Defaults work without editing these pages.",
+        "menu_options": {
+          "presets": "Away, Sleep and Boost",
+          "relay": "Relay timing and safety",
+          "average_pid": "Average PID tuning",
+          "init": "Back to configuration"
+        }
+      },
+      "presets": {
+        "title": "Away, Sleep and Boost",
+        "description": "These modes temporarily override the thermostat target. Temperatures use {temperature_unit}.",
+        "data": {
+          "away_temperature": "Away target",
+          "sleep_temperature": "Sleep target",
+          "boost_temperature": "Boost target",
+          "boost_minutes": "Boost duration (minutes)",
+          "away_delay_minutes": "Confirmed absence delay (minutes)",
+          "sleep_room": "Sleep temperature source"
+        }
+      },
+      "relay": {
+        "title": "Relay timing and safety",
+        "description": "Heat demand is a fraction of the PWM cycle. Minimum on/off times can stretch or combine pulses. Temperatures use {temperature_unit}.",
+        "data": {
+          "pwm_seconds": "Slow PWM period (seconds)",
+          "min_on_seconds": "Minimum relay on time (seconds)",
+          "min_off_seconds": "Minimum relay off time (seconds)",
+          "sensor_timeout_minutes": "Temperature report freshness allowance (minutes)",
+          "max_temperature": "Maximum room safety temperature"
+        }
+      },
+      "average_pid": {
+        "title": "Average PID tuning",
+        "description": "Average mode has its own PID controller. Automatic tuning waits for validated heating observations.",
+        "data": {
+          "average_tuning_mode": "Average PID tuning mode"
+        }
+      },
+      "average_gains": {
+        "title": "Manual Average PID gains",
+        "description": "Defaults are conservative. Gains use Celsius internally.",
+        "data": {
+          "average_kp": "Average manual Kp (duty/°C)",
+          "average_ki": "Average manual Ki (duty/°C/s)",
+          "average_kd": "Average manual Kd (duty·s/°C)"
+        }
+      },
+      "schedule_details": {
+        "title": "Advanced schedule settings",
+        "description": "Optional settings for overlapping schedules and additional block data.",
+        "data": {
+          "priority": "Priority (higher wins)",
+          "data_temperature_unit": "Default unit for additional block data"
+        }
       }
     },
     "error": {
       "heater_already_configured": "This relay already belongs to another Comfort Sense Thermostat entry.",
       "heater_missing": "The selected heating switch does not exist.",
-      "invalid_room": "Check room name, temperature sensors, PID gains and target. The target must be below the safety limit.",
+      "invalid_room": "Choose a unique room name, valid temperature sensors and PID tuning mode.",
       "invalid_config": "Check equipment, rooms and schedule bindings. Removed rooms must also be removed from schedule bindings; targets must be below the safety limit.",
-      "invalid_schedule": "Choose an existing Schedule helper, a valid source and a target below the safety limit."
+      "invalid_schedule": "Choose an existing Schedule helper, a valid source and a target below the safety limit.",
+      "invalid_cycle": "The PWM cycle must be at least the minimum on time plus minimum off time."
     }
   },
   "options": {
     "step": {
       "system": {
-        "title": "Equipment and Average PID",
-        "description": "Temperature fields use {temperature_unit}, following Home Assistant. Shadow mode observes without commanding heat. Schedules are configured separately.",
+        "title": "Thermostat basics",
+        "description": "Choose your relay and optional outdoor/home sensors. Medium uses 30 minutes of occupancy history, giving about 15 minutes before a sustained room change. Set the temperature on the thermostat card. Shadow mode observes without operating the relay.",
         "data": {
           "name": "Name",
           "heater": "Heating relay switch",
@@ -131,7 +201,9 @@
           "min_on_seconds": "Minimum relay on time (seconds)",
           "min_off_seconds": "Minimum relay off time (seconds)",
           "pwm_seconds": "Slow PWM period (seconds)",
-          "sleep_room": "Sleep temperature source"
+          "sleep_room": "Sleep temperature source",
+          "reaction_time": "Occupancy reaction time",
+          "comfort_temperature": "Default thermostat target"
         }
       },
       "manage": {
@@ -143,7 +215,7 @@
       },
       "room": {
         "title": "Room sensors and PID",
-        "description": "Temperatures use {temperature_unit}. Select this room’s sensors, comfort target and tuning mode. Configure weekly timing separately under Scheduling.",
+        "description": "Select room sensors and PID tuning. Every room follows the single thermostat setpoint. Automatic tuning learns from normal heating; manual gains are on the next page.",
         "data": {
           "name": "Room name",
           "temperature_sensors": "Temperature sensors",
@@ -165,10 +237,11 @@
       "init": {
         "title": "Configure Comfort Sense Thermostat",
         "menu_options": {
-          "system": "Equipment and Average PID",
+          "system": "Thermostat basics",
           "manage": "Rooms",
           "schedules": "Scheduling",
-          "review": "Review and save"
+          "review": "Review and save",
+          "advanced": "Advanced (optional)"
         }
       },
       "schedules": {
@@ -198,14 +271,81 @@
           "max_preheat_minutes": "Maximum preheat (minutes)",
           "fallback_heat_rate": "Fallback warm-up rate"
         }
+      },
+      "room_gains": {
+        "title": "Manual PID for {room}",
+        "description": "Leave the conservative defaults if unsure. Gains use Celsius internally, regardless of display units. Automatic tuning is available in the room settings.",
+        "data": {
+          "kp": "Manual Kp (duty/°C)",
+          "ki": "Manual Ki (duty/°C/s)",
+          "kd": "Manual Kd (duty·s/°C)"
+        }
+      },
+      "advanced": {
+        "title": "Advanced settings",
+        "description": "Defaults work without editing these pages.",
+        "menu_options": {
+          "presets": "Away, Sleep and Boost",
+          "relay": "Relay timing and safety",
+          "average_pid": "Average PID tuning",
+          "init": "Back to configuration"
+        }
+      },
+      "presets": {
+        "title": "Away, Sleep and Boost",
+        "description": "These modes temporarily override the thermostat target. Temperatures use {temperature_unit}.",
+        "data": {
+          "away_temperature": "Away target",
+          "sleep_temperature": "Sleep target",
+          "boost_temperature": "Boost target",
+          "boost_minutes": "Boost duration (minutes)",
+          "away_delay_minutes": "Confirmed absence delay (minutes)",
+          "sleep_room": "Sleep temperature source"
+        }
+      },
+      "relay": {
+        "title": "Relay timing and safety",
+        "description": "Heat demand is a fraction of the PWM cycle. Minimum on/off times can stretch or combine pulses. Temperatures use {temperature_unit}.",
+        "data": {
+          "pwm_seconds": "Slow PWM period (seconds)",
+          "min_on_seconds": "Minimum relay on time (seconds)",
+          "min_off_seconds": "Minimum relay off time (seconds)",
+          "sensor_timeout_minutes": "Temperature report freshness allowance (minutes)",
+          "max_temperature": "Maximum room safety temperature"
+        }
+      },
+      "average_pid": {
+        "title": "Average PID tuning",
+        "description": "Average mode has its own PID controller. Automatic tuning waits for validated heating observations.",
+        "data": {
+          "average_tuning_mode": "Average PID tuning mode"
+        }
+      },
+      "average_gains": {
+        "title": "Manual Average PID gains",
+        "description": "Defaults are conservative. Gains use Celsius internally.",
+        "data": {
+          "average_kp": "Average manual Kp (duty/°C)",
+          "average_ki": "Average manual Ki (duty/°C/s)",
+          "average_kd": "Average manual Kd (duty·s/°C)"
+        }
+      },
+      "schedule_details": {
+        "title": "Advanced schedule settings",
+        "description": "Optional settings for overlapping schedules and additional block data.",
+        "data": {
+          "priority": "Priority (higher wins)",
+          "data_temperature_unit": "Default unit for additional block data"
+        }
       }
     },
     "error": {
       "heater_already_configured": "This relay already belongs to another Comfort Sense Thermostat entry.",
       "heater_missing": "The selected heating switch does not exist.",
-      "invalid_room": "Check room name, temperature sensors, PID gains and target. The target must be below the safety limit.",
+      "invalid_room": "Choose a unique room name, valid temperature sensors and PID tuning mode.",
       "invalid_config": "Check equipment, rooms and schedule bindings. Removed rooms must also be removed from schedule bindings; targets must be below the safety limit.",
-      "invalid_schedule": "Choose an existing Schedule helper, a valid source and a target below the safety limit."
+      "invalid_schedule": "Choose an existing Schedule helper, a valid source and a target below the safety limit.",
+      "invalid_cycle": "The PWM cycle must be at least the minimum on time plus minimum off time."
     }
   }
 }

@@ -5,6 +5,7 @@ PLATFORMS = ["climate", "sensor", "number", "select"]
 DEFAULTS = {
     "name": "ComfortSense", "shadow": True, "outdoor_sensor": "",
     "home_sensor": "", "away_temperature": 18.0, "boost_temperature": 22.0,
+    "comfort_temperature": 21.0, "reaction_time": "medium",
     "boost_minutes": 60, "sleep_temperature": 18.0, "sleep_room": "",
     "occupancy_rise_minutes": 5, "occupancy_decay_minutes": 30,
     "away_delay_minutes": 20, "sensor_timeout_minutes": 180,

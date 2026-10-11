@@ -22,7 +22,7 @@ async def test_user_room_review_and_setup(hass):
     assert result["step_id"]=="manage"
     result=await hass.config_entries.flow.async_configure(result["flow_id"],{"action":"add"})
     assert result["step_id"]=="room"
-    r=room();r.pop("id")
+    r=room();r.pop("id");r["tuning_mode"]="auto"
     result=await hass.config_entries.flow.async_configure(result["flow_id"],r)
     assert result["step_id"]=="manage"
     result=await hass.config_entries.flow.async_configure(result["flow_id"],{"action":"finish"})

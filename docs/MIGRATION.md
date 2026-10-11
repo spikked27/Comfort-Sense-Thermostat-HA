@@ -40,3 +40,7 @@ The spring temperature archive is useful for planning fallback warm-up rates. It
 cannot identify heater gain, causal delivery delay, or reliable PID gains without
 actuator labels and outdoor data. Apartment history must remain a separate physical
 environment; do not transfer its learned coefficients to a different home.
+
+## Updating to 0.3
+
+The existing entry migrates automatically. The saved thermostat target becomes one shared comfort setpoint (for older divergent room overrides, the first configured room supplies it). Room target number entities are removed. Room IDs, learning, tuning choices, schedule connections and Shadow mode are preserved. Medium reaction replaces the previous exponential weighting with a 30-minute moving occupancy window. Select Heat after restart.

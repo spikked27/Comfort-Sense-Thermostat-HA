@@ -6,11 +6,16 @@ from .scheduling import migrate_config
 
 
 async def async_migrate_entry(hass,entry):
-    if entry.version>2:
+    if entry.version>3:
         return False
     if entry.version==1:
         data=migrate_config({**entry.data,**entry.options})
         hass.config_entries.async_update_entry(entry,data=data,options={},version=2)
+    if entry.version==2:
+        data={**entry.data,**entry.options}
+        data.setdefault("comfort_temperature",next((r.get("target",21) for r in data.get("rooms",[])),21))
+        data.setdefault("reaction_time","medium")
+        hass.config_entries.async_update_entry(entry,data=data,options={},version=3)
     return True
 
 

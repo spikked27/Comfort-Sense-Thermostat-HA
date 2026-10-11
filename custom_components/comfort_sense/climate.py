@@ -56,6 +56,7 @@ class ComfortSenseClimate(ComfortSenseEntity, ClimateEntity):
     def extra_state_attributes(self):
         r = self.runtime
         return {"shadow_mode": r.config["shadow"], "control_reason": r.reason,
+                "active_room":r.active_source,"reaction_time":r.config["reaction_time"],
                 "requested_duty_percent": round(r.duty*100, 1), "proposed_relay_on": r.proposed,
                 "observed_relay_on": r.actual, "rooms": r.room_data,
                 "schedules": r.schedule_plans,"schedule_status":r.schedule_status,
@@ -81,6 +82,4 @@ class ComfortSenseClimate(ComfortSenseEntity, ClimateEntity):
         temperature = kwargs.get("temperature")
         if temperature is None or not self.min_temp <= temperature <= self.max_temp:
             raise ServiceValidationError("Target outside supported range")
-        # Main dial changes comfort targets for all rooms; individual number entities refine them.
-        targets = {r["id"]: temperature for r in self.runtime.rooms}
-        await self.runtime.change(targets=targets, preset="comfort", boost_until=0)
+        await self.runtime.change(comfort_temperature=temperature, preset="comfort", boost_until=0)

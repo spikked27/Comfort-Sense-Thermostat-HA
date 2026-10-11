@@ -33,8 +33,10 @@ takes precedence.
 | **Temperature source** | A room, occupancy-based Auto, or the dedicated Average controller. |
 | **Scheduled target** | Target for blocks without a temperature override, in your HA temperature unit. |
 | **Warm up before a block starts** | Enable learned/fallback preheat to aim for comfort at the start. |
-| **Priority** | Higher values win when separate schedules overlap. |
-| **Block data temperature unit** | Unit for any optional numeric temperature values in the helper's Additional data. |
+| **Priority (advanced)** | Default zero. Higher values win when separate schedules overlap. |
+| **Block data temperature unit (advanced)** | Unit for any optional numeric temperature values in the helper's Additional data. |
+
+**Scheduling → Advanced settings for [schedule]** contains priority and block-data units; the normal connection form has only five fields.
 
 **Scheduling → Warm-up planning settings** controls maximum preheat and the fallback
 warming rate. Both live in Scheduling, rather than equipment or room setup. Warming

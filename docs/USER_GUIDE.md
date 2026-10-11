@@ -6,7 +6,7 @@
 
 | Temperature source | Behavior |
 |---|---|
-| **Auto** | Occupancy builds and fades gradually. The most-used rooms receive more priority. Little meaningful occupancy falls back to Average. |
+| **Auto** | Follows the room with the highest moving occupancy average. Ties keep the current room. Little meaningful occupancy falls back to Average. |
 | **Average** | Controls the equal-room mean through Average's own PID. A room with three sensors has the same weight as a room with one. |
 | **A room name** | Pins that room. Losing all its valid temperature readings suppresses heating instead of silently choosing another room. |
 
@@ -15,13 +15,21 @@ excluded. All rooms still receive heat together because there is one shared rela
 
 ## Temperature and presets
 
-The main dial updates every room's **comfort target** and returns to Comfort. Use
-individual room target entities to change only one room. Setup and number fields
-follow HA's Celsius or Fahrenheit preference, as does the climate card.
+The main dial sets **one comfort target** and returns to Comfort. It stays the same as Auto changes rooms or you select a room or Average. The **Active room** sensor shows the actual room being followed, even when the selector says Auto. Temperature fields follow HA's Celsius/Fahrenheit preference.
+
+Choose reaction under **Configure → Thermostat basics**:
+
+| Reaction | Occupancy window | Typical sustained room-change buffer |
+|---|---|---|
+| Fast | 10 minutes | About 5 minutes |
+| Medium (default) | 30 minutes | About 15 minutes |
+| Slow | 60 minutes | About 30 minutes |
+
+These are moving averages, not fixed timers. Intermittent motion changes the crossover time. Room occupancy sensors expose the percentage of each window occupied. No history is restored after restart; the window builds from fresh observations.
 
 | Preset | What happens |
 |---|---|
-| **Comfort** | Room comfort targets and your selected source. |
+| **Comfort** | The thermostat setpoint and your selected source. |
 | **Away** | The Away target and dedicated Average PID. Automatic Away follows confirmed absence after its delay. |
 | **Sleep** | The Sleep target, optionally pinned to a sleeping room selected in system options. |
 | **Boost** | The Boost target and Average PID for a bounded time, then a return to Comfort. |
@@ -53,7 +61,7 @@ not a guarantee of hitting the target under every weather condition.
 ## Manual or automatic tuning
 
 Choose independently in each room's settings. Average's gains and mode are in
-**Equipment and Average PID**.
+**Configure → Advanced → Average PID tuning**.
 
 | Mode | Behavior |
 |---|---|
@@ -84,8 +92,7 @@ before copying another integration's values or making large adjustments.
 | **Safety temperature limit** | A valid room sensor reached the configured maximum. |
 | **Heater unavailable / Heater command failed** | Inspect relay connectivity and HA logs. |
 
-Heat demand is a requested percentage, not measured furnace power. Slow relay
-periods deliver that demand; small requests accumulate into useful pulses.
+**Heat demand is 0–100% requested furnace on-time**, not measured furnace power. At a 20-minute PWM cycle, 25% requests about 5 minutes On and 15 minutes Off; 50% requests about 10 minutes On. Minimum On/Off times and safety checks can alter the timing. Small requests accumulate over several cycles into a minimum-length pulse. The entity exposes `cycle_minutes` and `nominal_on_minutes`, plus proposed/observed relay state. Nominal time is not a countdown or a guaranteed pulse length.
 Shadow proposals can differ from the relay controlled by the old thermostat and
 do not prove how the house will respond after switching controllers.
 
@@ -96,7 +103,7 @@ overshoot. Sun, stored heat, weather and imperfect models can still warm a room
 after the relay switches off.
 
 **Can two rooms reach different targets independently?** Shared heating warms them
-together. Targets guide priority; independent zones need their own hardware.
+together. Ordinary control uses one setpoint; schedules can temporarily prioritize a room. Independent zones need their own hardware.
 
 **Does it need internet?** Control and learning are local. HACS uses GitHub for
 installation and updates.

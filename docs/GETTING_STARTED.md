@@ -49,11 +49,11 @@ Choose a name and the heating switch. Select your outdoor temperature and
 home-presence sources. Keep **Shadow mode** enabled during the first evaluation;
 the old thermostat can continue controlling the relay while Comfort Sense observes.
 
-System settings also contain Away, Sleep and Boost targets; relay timing; and the
-dedicated **Average PID** mode and manual gains. Use timing suitable for your
-equipment. Defaults are twenty-minute PWM and five-minute minimum On/Off times.
+Choose **Fast**, **Medium** or **Slow** reaction. Medium is the default: a 30-minute moving occupancy window gives about a 15-minute buffer after a sustained room change.
 
-Setup fields and room target controls follow your HA temperature-unit preference.
+The six basic fields are name, relay, optional outdoor sensor, optional home presence, Shadow mode and reaction time. Set temperature on the thermostat card. Away/Sleep/Boost, relay timing and Average PID live under **Configure → Advanced**, with conservative defaults of a twenty-minute cycle and five-minute minimum On/Off times.
+
+Temperature fields and the thermostat card follow your HA temperature-unit preference.
 If HA uses Fahrenheit, enter Fahrenheit values directly. Internally stored targets
 remain unchanged when upgrading. Useful equivalents are:
 
@@ -74,8 +74,7 @@ Choose binary occupancy sensors that reflect time spent in the room. Any selecte
 sensor On counts as occupied. Without occupancy sensors, manual room selection
 and Average still work.
 
-Set the comfort target and choose **Manual PID gains** or **Automatic validated
-room tuning**. Every room and Average choose independently. Automatic mode uses
+Choose **Manual PID gains** or **Automatic validated room tuning**. Manual gains appear on a separate page only when selected. Rooms follow the thermostat setpoint; there are no individual room target inputs. Every room and Average choose independently. Automatic mode uses
 your manual gains until reliable learning data is available. Supplied gains are
 starting points, rather than a universal heating-system tune.
 
@@ -106,7 +105,7 @@ After reviewing Shadow behavior, disable the previous thermostat and any scripts
 or automations controlling the same relay. Use the [migration guide](MIGRATION.md)
 when replacing Smart Thermostat.
 
-Open the integration's **Configure** menu, choose **Equipment and Average PID**, turn Shadow off,
+Open the integration's **Configure** menu, choose **Thermostat basics**, turn Shadow off,
 and finish the review. Select **Heat** after the reload. Comfort Sense now commands
 the switch while respecting the configured cycle limits.
 

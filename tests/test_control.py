@@ -62,7 +62,7 @@ class ControlTests(unittest.TestCase):
 
     def test_room_weights_and_away_equal_room_average(self):
         w=control.weights({"a":1,"b":0.5},["a","b"])
-        self.assertAlmostEqual(w["a"],0.8)
+        self.assertEqual(w,{"a":1.0})
         self.assertEqual(control.weights({},["a","b"],True),{"a":0.5,"b":0.5})
         self.assertEqual(control.weights({},["b"],selected="a"),{})
         self.assertEqual(control.weights({},[]),{})
@@ -73,6 +73,26 @@ class ControlTests(unittest.TestCase):
         p.update(20,22,30)
         self.assertEqual(p.derivative,0)
         self.assertAlmostEqual(p.output,0.4)
+
+    def test_fixed_window_changes_room_after_half_window_and_keeps_tie(self):
+        for window in (600,1800,3600):
+            old,new=control.Occupancy(),control.Occupancy()
+            old.moving_average(True,window,window)
+            new.moving_average(False,window,window)
+            old.moving_average(False,window/2,window)
+            new.moving_average(True,window/2,window)
+            self.assertEqual(control.weights({"old":old.score,"new":new.score},["old","new"],previous="old"),{"old":1.0})
+            old.moving_average(False,30,window)
+            new.moving_average(True,30,window)
+            self.assertEqual(control.weights({"old":old.score,"new":new.score},["old","new"],previous="old"),{"new":1.0})
+            new.moving_average(False,window,window)
+            self.assertEqual(new.score,0)
+
+    def test_moving_average_is_time_weighted_not_event_count(self):
+        a,b=control.Occupancy(),control.Occupancy()
+        a.moving_average(True,600,1800)
+        for _ in range(600): b.moving_average(True,1,1800)
+        self.assertAlmostEqual(a.score,b.score)
 
     def test_antiwindup_and_off_resets(self):
         p=control.PID()
