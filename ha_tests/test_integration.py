@@ -67,3 +67,40 @@ async def test_invalid_room_rejected(hass):
     r=room();r.pop("id");r["name"]="Average";r["morning_days"]=["0"]
     result=await hass.config_entries.flow.async_configure(flow["flow_id"],r)
     assert result["errors"]["base"]=="invalid_room"
+
+
+async def test_room_options_update_manual_fallback_without_changing_average(hass):
+    hass.states.async_set("switch.heat","off")
+    hass.states.async_set("sensor.study","20",{"unit_of_measurement":"°C"})
+    entry=MockConfigEntry(domain=DOMAIN,data={"heater":"switch.heat","shadow":True,"rooms":[room()],"average_kp":0.55})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    result=await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["step_id"]=="manage"
+    result=await hass.config_entries.options.async_configure(result["flow_id"],{"action":"edit:study"})
+    update=room();update.pop("id")
+    update.update(kp=0.35,tuning_mode="auto",morning_days=["0","1"])
+    result=await hass.config_entries.options.async_configure(result["flow_id"],update)
+    result=await hass.config_entries.options.async_configure(result["flow_id"],{"action":"finish"})
+    result=await hass.config_entries.options.async_configure(result["flow_id"],{})
+    assert result["type"]=="create_entry"
+    await hass.async_block_till_done()
+    runtime=hass.data[DOMAIN][entry.entry_id]
+    assert runtime.pids["study"].kp==0.35
+    assert runtime.pids["_average"].kp==0.55
+    assert runtime.rooms[0]["tuning_mode"]=="auto"
+
+
+async def test_active_unload_requests_heater_off(hass):
+    calls=[]
+    async def command(call): calls.append(call.service)
+    hass.services.async_register("switch","turn_on",command)
+    hass.services.async_register("switch","turn_off",command)
+    hass.states.async_set("switch.heat","off")
+    hass.states.async_set("sensor.study","20",{"unit_of_measurement":"°C"})
+    entry=MockConfigEntry(domain=DOMAIN,data={"heater":"switch.heat","shadow":False,"rooms":[room()]})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    assert calls[-1]=="turn_off"

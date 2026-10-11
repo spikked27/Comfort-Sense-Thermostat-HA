@@ -14,7 +14,10 @@ def entity(domains, multiple=False):
 
 
 def number(low, high, unit=None):
-    return selector.NumberSelector(selector.NumberSelectorConfig(min=low, max=high, step="any", mode="box", unit_of_measurement=unit))
+    config = {"min":low,"max":high,"step":"any","mode":"box"}
+    if unit is not None:
+        config["unit_of_measurement"] = unit
+    return selector.NumberSelector(selector.NumberSelectorConfig(**config))
 
 
 def system_schema(config):
