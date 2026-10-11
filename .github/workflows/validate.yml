@@ -20,4 +20,4 @@ jobs:
         with:
           python-version: '3.14'
       - run: pip install pytest-homeassistant-custom-component 'homeassistant>=2026.10.0,<2026.11.0'
-      - run: pytest ha_tests -v
+      - run: python -m pytest ha_tests -v

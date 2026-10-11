@@ -19,7 +19,7 @@ For real HA testing on Linux using HA's required Python version:
 
 ```
 pip install pytest-homeassistant-custom-component 'homeassistant>=2026.10.0,<2026.11.0'
-pytest ha_tests -v
+python -m pytest ha_tests -v
 ```
 
 These integration tests exercise the actual config flow, setup/unload, duplicate
