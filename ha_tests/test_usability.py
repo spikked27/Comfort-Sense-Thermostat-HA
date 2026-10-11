@@ -14,7 +14,8 @@ def room():
 
 async def test_short_setup_and_manual_gains_are_separate(hass):
     hass.states.async_set("switch.heat","off")
-    hass.states.async_set("sensor.study","20",{"unit_of_measurement":"°C"})
+    # Temperature helpers can omit a unit until their first startup reading.
+    hass.states.async_set("sensor.study","unknown",{"device_class":"temperature"})
     flow=await hass.config_entries.flow.async_init(DOMAIN,context={"source":SOURCE_USER})
     assert {str(k) for k in flow["data_schema"].schema}=={"name","heater","outdoor_sensor","home_sensor","shadow","reaction_time"}
     flow=await hass.config_entries.flow.async_configure(flow["flow_id"],{"name":"Simple","heater":"switch.heat","shadow":True,"reaction_time":"medium"})

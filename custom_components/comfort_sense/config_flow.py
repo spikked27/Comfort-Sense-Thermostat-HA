@@ -141,7 +141,7 @@ class Editor:
                 validate({**self.config,"rooms":rooms})
                 for e in room["temperature_sensors"]:
                     state=self.hass.states.get(e)
-                    if not state or state.attributes.get("unit_of_measurement") not in ("°C","°F","K"):
+                    if not state or (state.attributes.get("unit_of_measurement") not in ("°C","°F","K") and state.attributes.get("device_class") != "temperature"):
                         raise ValueError("Select temperature sensors")
                 self.config["rooms"]=rooms
                 if room.get("tuning_mode","manual")=="manual":
@@ -151,7 +151,8 @@ class Editor:
             except (ValueError,TypeError,KeyError):
                 errors["base"]="invalid_room"
         self.form_unit=self.unit
-        return self.async_show_form(step_id="room",data_schema=room_schema(existing,self.form_unit),errors=errors,
+        shown={**(existing or {}),**(user_input or {})}
+        return self.async_show_form(step_id="room",data_schema=room_schema(shown,self.form_unit),errors=errors,
                                    description_placeholders={"temperature_unit":self.form_unit})
 
     async def async_step_room_gains(self,user_input=None):
