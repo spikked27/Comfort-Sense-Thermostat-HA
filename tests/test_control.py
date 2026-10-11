@@ -94,6 +94,25 @@ class ControlTests(unittest.TestCase):
         for _ in range(600): b.moving_average(True,1,1800)
         self.assertAlmostEqual(a.score,b.score)
 
+    def test_relative_occupancy_groups_use_equal_room_mean(self):
+        self.assertEqual(control.weights({"a":0.6,"b":0.5,"c":0.2},["a","b","c"],margin=0.3),{"a":0.5,"b":0.5})
+        self.assertEqual(control.weights({"a":1,"b":0.75},["a","b"],margin=0.3),{"a":0.5,"b":0.5})
+        self.assertEqual(control.weights({"a":1,"b":0.7},["a","b"],margin=0.3),{"a":1})
+        self.assertEqual(control.weights({"a":0.5,"b":0.5,"c":0.5},["a","b","c"],margin=0.3),{"a":1/3,"b":1/3,"c":1/3})
+        self.assertEqual(control.weights({"a":1,"b":1},["a","b"],margin=0),{"a":1})
+
+    def test_room_guard_hysteresis_disabled_and_missing_inputs(self):
+        guard=control.RoomGuard()
+        guard.update(22,21,1,2);self.assertTrue(guard.hot)
+        guard.update(21.9,21,1,2);self.assertTrue(guard.hot)
+        guard.update(21.7,21,1,2);self.assertFalse(guard.hot)
+        guard.update(18.5,21,1,2);self.assertTrue(guard.cold)
+        guard.update(19.1,21,1,2);self.assertTrue(guard.cold)
+        guard.update(19.3,21,1,2);self.assertFalse(guard.cold)
+        guard.update(40,21,0,0);self.assertFalse(guard.hot)
+        guard.update(-5,21,0,0);self.assertFalse(guard.cold)
+        guard.update(None,21,1,2);self.assertFalse(guard.hot or guard.cold)
+
     def test_antiwindup_and_off_resets(self):
         p=control.PID()
         for _ in range(300): p.update(15,25,30)

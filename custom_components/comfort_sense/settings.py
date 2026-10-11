@@ -10,6 +10,7 @@ def validate(config):
         raise ValueError("A switch heater is required")
     for key, low, high in [
         ("comfort_temperature", 5, 27), ("away_temperature", 5, 27), ("boost_temperature", 5, 27),
+        ("occupancy_margin",0,100),
         ("sleep_temperature", 5, 27), ("boost_minutes", 1, 240),
         ("occupancy_rise_minutes", 1, 60), ("occupancy_decay_minutes", 1, 180),
         ("away_delay_minutes", 0, 180), ("sensor_timeout_minutes", 5, 1440),
@@ -33,6 +34,12 @@ def validate(config):
         raise ValueError("Configure 1 to 20 rooms")
     ids, names = set(), set()
     for room in rooms:
+        for key,default in [("hot_buffer",2.0),("cold_buffer",2.0)]:
+            room.setdefault(key,default)
+            v=float(room[key])
+            if not math.isfinite(v) or not 0<=v<=10:
+                raise ValueError("Invalid room protection buffer")
+            room[key]=v
         room.setdefault("tuning_mode", "manual")
         for key, default, high in [("kp", 0.2, 2), ("ki", 0.000035, 0.001), ("kd", 0.0, 3600)]:
             room.setdefault(key, default)

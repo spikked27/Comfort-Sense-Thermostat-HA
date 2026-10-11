@@ -70,7 +70,7 @@ class Occupancy:
         return self.score
 
 
-def weights(scores, valid, average=False, selected="Auto", previous=None):
+def weights(scores, valid, average=False, selected="Auto", previous=None, margin=0.0, previous_members=()):
     if not valid:
         return {}
     if selected not in ("Auto", "Average"):
@@ -78,9 +78,37 @@ def weights(scores, valid, average=False, selected="Auto", previous=None):
     if average or selected == "Average" or sum(scores.get(r, 0) for r in valid) < 0.05:
         return {r: 1 / len(valid) for r in valid}
     maximum = max(scores.get(r, 0) for r in valid)
+    if margin > 0:
+        # Symmetric relative difference, matching the original room templates.
+        members = [r for r in valid if scores.get(r,0)>0 and
+                   2*(maximum-scores[r])/(maximum+scores[r]) <= margin+(0.02 if r in previous_members else 0)+1e-9]
+        return {r:1/len(members) for r in members}
     # Keep the current room at a tie instead of oscillating between equal scores.
     winner = previous if previous in valid and scores.get(previous,0) >= maximum-1e-9 else max(valid,key=lambda r:scores.get(r,0))
     return {winner: 1.0}
+
+
+@dataclass
+class RoomGuard:
+    hot: bool = False
+    cold: bool = False
+
+    def update(self, temperature, target, hot_buffer, cold_buffer, hysteresis=0.2):
+        if temperature is None:
+            self.hot = self.cold = False
+            return
+        upper, lower = target+hot_buffer, target-cold_buffer
+        self.hot = hot_buffer>0 and (temperature>=upper or self.hot and temperature>upper-min(hysteresis,hot_buffer/2))
+        self.cold = cold_buffer>0 and (temperature<lower or self.cold and temperature<lower+min(hysteresis,cold_buffer/2))
+
+
+@dataclass
+class GroupForecast:
+    """Conservative arrival estimate: allow each selected room to reach the target."""
+    rooms: list
+
+    def time_to_target(self, temperature, target, outdoor):
+        return max(model.time_to_target(measured,target,outdoor) for model,measured in self.rooms)
 
 
 @dataclass

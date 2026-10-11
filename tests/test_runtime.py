@@ -118,7 +118,7 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.set("zone.home","0")
         self.advance(30);await self.r.tick()
         self.advance(1200);await self.r.tick()
-        self.assertEqual(self.r.reason,"Away average")
+        self.assertIn(self.r.reason,("Away average","Warm room protection: A, B"))
         self.assertEqual(self.r.target_temperature,18)
 
     async def test_missing_room_excluded_but_selected_missing_fails_off(self):
@@ -326,6 +326,7 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         await new.stop()
 
     async def test_auto_follows_one_room_with_single_target_and_medium_delay(self):
+        self.r.config["occupancy_margin"]=0
         self.r.mode="heat"
         self.r.comfort_temperature=22.5
         self.set("binary_sensor.a","on")
@@ -353,6 +354,63 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.r.target_temperature,22)
         self.assertNotIn("targets",self.r.saved())
         await self.r.stop()
+
+    async def test_group_pid_controls_mean_without_clipped_room_output_bias(self):
+        self.r.mode="heat"
+        for r in self.r.rooms:r.update(hot_buffer=0,cold_buffer=0)
+        self.set("sensor.a","18","°C");self.set("sensor.b","24","°C")
+        self.set("binary_sensor.a","on");self.set("binary_sensor.b","on")
+        self.r.occupancy["a"].moving_average(True,1800)
+        self.r.occupancy["b"].moving_average(True,1800)
+        await self.r.tick()
+        self.assertEqual(self.r.active_source,"A + B")
+        self.assertEqual(self.r.current_temperature,21)
+        self.assertEqual(self.r.target_temperature,21)
+        self.assertEqual(self.r.duty,0)
+        self.assertTrue(self.r.group_data["active"])
+        self.assertEqual(self.r.pids["a"].output,0)
+
+    async def test_group_membership_change_does_not_create_derivative_kick(self):
+        self.r.mode="heat"
+        self.set("binary_sensor.a","on");self.set("binary_sensor.b","on")
+        self.r.occupancy["a"].moving_average(True,1800)
+        self.r.occupancy["b"].moving_average(True,1800)
+        await self.r.tick()
+        self.r.group_pid.integral=0.5;self.r.group_pid.derivative=0.1
+        self.set("sensor.b","unknown")
+        self.advance(30);await self.r.tick()
+        self.assertEqual(self.r.group_pid.derivative,0)
+        self.assertEqual(self.r.group_pid.integral,0)
+        self.assertEqual(self.r.active_source,"A")
+
+    async def test_cold_unselected_room_requests_heat_but_warm_room_wins(self):
+        self.r.mode="heat";self.r.source="a"
+        self.r.rooms[0]["hot_buffer"]=1
+        self.set("sensor.a","21.5","°C");self.set("sensor.b","18","°C")
+        await self.r.tick()
+        self.assertGreater(self.r.duty,0)
+        self.assertIn("Cold room protection",self.r.reason)
+        self.set("sensor.a","22.1","°C")
+        self.advance(30);await self.r.tick()
+        self.assertEqual(self.r.duty,0)
+        self.assertFalse(self.r.proposed)
+        self.assertIn("Warm room protection",self.r.reason)
+        self.assertTrue(self.r.guard_data["b"]["cold"])
+
+    async def test_guards_follow_away_target_and_never_start_an_off_controller(self):
+        self.set("sensor.a","15","°C")
+        await self.r.change(preset="away")
+        self.assertEqual(self.r.guard_data["a"]["lower"],16)
+        self.assertEqual(self.r.duty,0)
+        self.assertFalse(self.r.proposed)
+
+    async def test_immediate_user_changes_do_not_add_occupancy_history(self):
+        self.set("binary_sensor.a","on")
+        await self.r.tick()
+        previous=self.r.occupancy["a"].score
+        await self.r.change(source="Average")
+        await self.r.change(source="Auto")
+        self.assertEqual(self.r.occupancy["a"].score,previous)
 
 
 if __name__=="__main__":unittest.main()

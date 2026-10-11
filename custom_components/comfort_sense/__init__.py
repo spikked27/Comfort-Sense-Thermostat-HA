@@ -3,6 +3,7 @@ from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from .const import DOMAIN, PLATFORMS
 from .runtime import Runtime
 from .scheduling import migrate_config
+from .settings import validate
 
 
 async def async_migrate_entry(hass,entry):
@@ -31,6 +32,9 @@ async def async_setup_entry(hass, entry):
 
 
 async def reload_entry(hass, entry):
+    runtime=hass.data.get(DOMAIN,{}).get(entry.entry_id)
+    if runtime and runtime.config==validate({**entry.data,**entry.options}):
+        return  # configuration entities already applied these settings in place
     await hass.config_entries.async_reload(entry.entry_id)
 
 

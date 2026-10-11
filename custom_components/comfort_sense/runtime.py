@@ -1,6 +1,7 @@
 """HA boundary: reads observations, persists learning and arbitrates one heat relay."""
 import asyncio
 from collections import deque
+from copy import deepcopy
 from dataclasses import asdict
 from datetime import timedelta
 import logging
@@ -13,7 +14,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import AVERAGE, DOMAIN
-from .control import Occupancy, PID, Relay, celsius, deadline_plan, presence, weights
+from .control import Occupancy, PID, Relay, RoomGuard, GroupForecast, celsius, deadline_plan, presence, weights
 from .learning import Sample, ThermalModel, identify
 from .settings import validate
 from .scheduling import windows, choose
@@ -39,12 +40,20 @@ class Runtime:
         self.comfort_temperature = self.config["comfort_temperature"]
         self.active_source = "Average"
         self.auto_room = None
+        self.auto_members = ()
+        self.group_pid = PID()
+        self.group_members = ()
+        self.group_data = {}
+        self.guards = {r["id"]:RoomGuard() for r in self.rooms}
+        self.cold_pids = {r["id"]:PID(*(r[k] for k in ("kp","ki","kd"))) for r in self.rooms}
+        self.guard_data = {}
         self.applied = {}
         self.relay = Relay(self.config["pwm_seconds"], self.config["min_on_seconds"], self.config["min_off_seconds"])
         self.mode, self.preset, self.source = "off", "comfort", "Auto"
         self.boost_until = 0.0
         self.absent_since = None
         self.last_tick = self.last_sample = self.last_fit = self.last_save = 0.0
+        self.force_tick = False
         self.outdoor = None
         self.actual = None
         self.duty = 0.0
@@ -188,10 +197,13 @@ class Runtime:
                 for window in candidates:
                     if window.start>now+self.config["max_preheat_minutes"]*60 and window is not upcoming:
                         continue
-                    selection=weights(scores,valid,selected=window.source,previous=self.auto_room)
+                    selection=weights(scores,valid,selected=window.source,previous=self.auto_room,
+                        margin=self.config["occupancy_margin"]/100,previous_members=self.auto_members)
                     temperature=sum(self.room_data[rid]["temperature"]*weight for rid,weight in selection.items()) if selection else None
                     model=self.model(next(iter(selection)),now) if window.source=="Auto" and len(selection)==1 and sum(scores.get(rid,0) for rid in valid)>=0.05 else self.model(window.source,now) if window.source not in ("Auto","Average") else (
                         self.model(AVERAGE,now) if len(valid)==len(self.rooms) and (window.source=="Average" or sum(scores.get(rid,0) for rid in valid)<0.05) else None)
+                    if window.source=="Auto" and len(selection)>1 and sum(scores.get(rid,0) for rid in valid)>=0.05:
+                        model=GroupForecast([(self.model(rid,now),self.room_data[rid]["temperature"]) for rid in selection]) if all(self.model(rid,now) for rid in selection) else None
                     prediction=(deadline_plan(now,window.start,window.end-window.start,temperature,
                         window.target,model,self.outdoor,self.config["fallback_heat_rate"],self.config["max_preheat_minutes"]*60)
                         if temperature is not None else {"lead_seconds":0,"reachable":False,"confidence":"input unavailable"})
@@ -217,8 +229,9 @@ class Runtime:
                 return
             now = dt_util.utcnow().timestamp()
             dt = max(0, min(120, now - self.last_tick)) if self.last_tick else 30
-            if self.last_tick and dt < 1:
+            if self.last_tick and dt < 1 and not self.force_tick:
                 return
+            self.force_tick=False
             self.last_tick = now
             await self.refresh_schedules(now)
             state = self.hass.states.get(self.config["heater"])
@@ -263,7 +276,9 @@ class Runtime:
                 if temperature is not None:
                     valid.append(rid)
             source = self.source
-            auto_selection = weights(scores,valid,previous=self.auto_room)
+            auto_selection = weights(scores,valid,previous=self.auto_room,margin=self.config["occupancy_margin"]/100,
+                previous_members=self.auto_members)
+            self.auto_members = tuple(sorted(auto_selection))
             self.auto_room = next(iter(auto_selection)) if len(auto_selection)==1 else None
             if self.preset == "sleep" and self.config["sleep_room"] and not away:
                 source = self.config["sleep_room"]
@@ -283,19 +298,32 @@ class Runtime:
                             self.room_data[rid]["target"]=plan["target"]
                             self.room_data[rid]["schedule"]=plan
             selected = weights(scores, valid, average=away or self.preset == "boost",
-                               selected="Average" if away or self.preset == "boost" else source,previous=self.auto_room)
+                               selected="Average" if away or self.preset == "boost" else source,previous=self.auto_room,
+                               margin=self.config["occupancy_margin"]/100,previous_members=self.auto_members)
             if scheduled and all(p["source"] not in ("Auto","Average") for p in scheduled):
                 selected = {rid: 1/len(scheduled_rooms) for rid in scheduled_rooms}
             average_control = not scheduled_rooms and (away or self.preset == "boost" or source == "Average" or
                               source == "Auto" and sum(scores.get(rid,0) for rid in valid) < 0.05)
-            self.active_source = "Average" if average_control and selected else ", ".join(r["name"] for r in self.rooms if r["id"] in selected) if selected else "Unavailable"
+            group_control = not average_control and not scheduled_rooms and len(selected)>1
+            self.active_source = "Average" if average_control and selected else " + ".join(r["name"] for r in self.rooms if r["id"] in selected) if selected else "Unavailable"
             self.current_temperature = sum(self.room_data[rid]["temperature"] * w for rid,w in selected.items()) if selected else None
             self.target_temperature = sum(self.room_data[rid]["target"] * w for rid,w in selected.items()) if selected else self.comfort_temperature
             reason = "Away average" if away else ("Schedule preheat" if any(p["phase"]=="preheat" for p in scheduled)
                 else "Scheduled comfort") if scheduled else "Room control"
-            forced = self.mode == "off" or not selected or high_temperature or self.actual is None
+            self.guard_data = {}
+            for room in self.rooms:
+                rid=room["id"];row=self.room_data[rid]
+                guard=self.guards[rid]
+                guard.update(row["temperature"],self.target_temperature,room["hot_buffer"],room["cold_buffer"])
+                self.guard_data[rid]={"name":room["name"],"hot":guard.hot,"cold":guard.cold,
+                    "upper":self.target_temperature+room["hot_buffer"] if room["hot_buffer"] else None,
+                    "lower":self.target_temperature-room["cold_buffer"] if room["cold_buffer"] else None,
+                    "available":row["temperature"] is not None}
+            hot_rooms=[row["name"] for row in self.guard_data.values() if row["hot"]]
+            forced = self.mode == "off" or not selected or high_temperature or bool(hot_rooms) or self.actual is None
             if self.mode == "off": reason = "Off"
             elif high_temperature: reason = "Safety temperature limit"
+            elif hot_rooms: reason = "Warm room protection: " + ", ".join(hot_rooms)
             elif self.actual is None: reason = "Heater unavailable"
             elif not selected: reason = "Selected room has no valid temperature" if source not in ("Auto", "Average") else "No valid temperatures"
             duties = {}
@@ -315,7 +343,7 @@ class Runtime:
                     self.applied.pop(rid)
                 feedforward = model.feedforward(row["target"], self.outdoor) if model and self.outdoor is not None and self.applied.get(rid) == model.fitted_at else 0
                 duty = pid.update(row["temperature"], row["target"], dt, feedforward,
-                                  active=not forced and not average_control and selected.get(rid,0)>0.01,
+                                  active=not forced and not average_control and not group_control and selected.get(rid,0)>0.01,
                                   constrained=self.actual is not None and self.proposed != self.actual)
                 # Coast prediction from measured slope anticipates delayed heat already in transit.
                 coast = row["temperature"] + max(0, pid.derivative) * (model.delay if model else 600)
@@ -368,6 +396,48 @@ class Runtime:
             # A deadline is a max-demand objective. It is still bounded by safety/cycling.
             if scheduled_rooms and not forced:
                 self.duty = max(duties.get(rid, 0) for rid in scheduled_rooms)
+            membership=tuple(sorted(selected)) if group_control else ()
+            if membership != self.group_members:
+                self.group_pid=PID()
+                self.group_members=membership
+            self.group_data={"active":group_control,"members":list(membership)}
+            if group_control:
+                # Control the mean measurement, rather than averaging clipped room outputs.
+                controllers=[self.pids[rid] for rid in membership]
+                gains=(min(p.kp for p in controllers),min(p.ki for p in controllers),max(p.kd for p in controllers))
+                if gains != (self.group_pid.kp,self.group_pid.ki,self.group_pid.kd):
+                    self.group_pid.tune(*gains)
+                delay=max((self.model(rid,now).delay if self.model(rid,now) else 600 for rid in membership))
+                feedforward=sum((self.model(rid,now).feedforward(self.target_temperature,self.outdoor)
+                    if self.outdoor is not None and self.model(rid,now) and self.applied.get(rid)==self.model(rid,now).fitted_at else 0)
+                    for rid in membership)/len(membership)
+                group_duty=self.group_pid.update(self.current_temperature,self.target_temperature,dt,feedforward,
+                    active=not forced,constrained=self.actual is not None and self.proposed!=self.actual)
+                if self.current_temperature+max(0,self.group_pid.derivative)*delay >= self.target_temperature+0.3:
+                    group_duty=0
+                    self.group_pid.integral=min(0,self.group_pid.integral)
+                if not forced:self.duty=group_duty
+                self.group_data.update(duty=group_duty,gains=dict(zip(("kp","ki","kd"),gains)))
+            cold_demands={}
+            for room in self.rooms:
+                rid=room["id"];row=self.room_data[rid];pid=self.cold_pids[rid]
+                main=self.pids[rid]
+                gains=(main.kp,main.ki,main.kd)
+                if gains != (pid.kp,pid.ki,pid.kd):pid.tune(*gains)
+                if row["temperature"] is None:
+                    pid.previous=None;pid.integral=pid.derivative=0
+                    continue
+                floor=self.target_temperature-room["cold_buffer"]
+                duty=pid.update(row["temperature"],floor+min(0.2,room["cold_buffer"]/2),dt,
+                    active=not forced and self.guards[rid].cold,
+                    constrained=self.actual is not None and self.proposed!=self.actual)
+                self.guard_data[rid]["cold_duty"]=duty
+                if self.guards[rid].cold:cold_demands[room["name"]]=duty
+            if not forced and cold_demands:
+                protective=max(cold_demands.values())
+                if protective>self.duty:
+                    self.duty=protective
+                    reason="Cold room protection: " + ", ".join(cold_demands)
             self.proposed = self.relay.decide(now, self.duty, bool(self.actual), force_off=forced)
             self.reason = reason
             if not self.config["shadow"]:
@@ -428,8 +498,34 @@ class Runtime:
     async def change(self, **changes):
         for key, value in changes.items():
             setattr(self, key, value)
-        self.last_tick = 0  # explicit user changes take effect immediately
+        self.force_tick = True  # act immediately without inventing occupancy time
         self.save_later()
+        await self.tick()
+
+    async def configure(self, values, room_id=None):
+        """Persist entity settings immediately, without unloading an active controller."""
+        async with self.lock:
+            candidate=deepcopy(self.config)
+            if room_id:
+                next(r for r in candidate["rooms"] if r["id"]==room_id).update(values)
+            else:
+                candidate.update(values)
+            candidate=validate(candidate)
+            self.config=candidate
+            self.rooms=candidate["rooms"]
+            for room in self.rooms:
+                plant=next(p for p in self.plants if p["id"]==room["id"])
+                plant.update(room)
+            self.plants[-1].update(tuning_mode=candidate["average_tuning_mode"],
+                **{k:candidate["average_"+k] for k in ("kp","ki","kd")})
+            for plant in self.plants:
+                rid=plant["id"];model=self.model(rid,dt_util.utcnow().timestamp())
+                gains=model.gains(candidate["pwm_seconds"]) if model and plant["tuning_mode"]=="auto" else tuple(plant[k] for k in ("kp","ki","kd"))
+                self.pids[rid].tune(*gains)
+                if model and plant["tuning_mode"]=="auto":self.applied[rid]=model.fitted_at
+                else:self.applied.pop(rid,None)
+            self.hass.config_entries.async_update_entry(self.entry,options=deepcopy(candidate))
+            self.force_tick=True
         await self.tick()
 
     async def stop(self):

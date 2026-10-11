@@ -20,7 +20,9 @@ class ActiveRoom(ComfortSenseEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self):
-        return {"selection":self.runtime.source,"reaction_time":self.runtime.config["reaction_time"]}
+        return {"selection":self.runtime.source,"reaction_time":self.runtime.config["reaction_time"],
+                "occupancy_grouping_tolerance":self.runtime.config["occupancy_margin"],
+                "members":[r["name"] for r in self.runtime.rooms if self.runtime.room_data.get(r["id"],{}).get("weight",0)>0]}
 
 
 class RoomOccupancy(ComfortSenseEntity, SensorEntity):
@@ -43,7 +45,8 @@ class Status(ComfortSenseEntity, SensorEntity):
     @property
     def extra_state_attributes(self):
         return {"shadow": self.runtime.config["shadow"], "learning": self.runtime.learning_status,
-                "schedules":self.runtime.schedule_status}
+                "schedules":self.runtime.schedule_status,"room_protection":self.runtime.guard_data,
+                "group_control":self.runtime.group_data}
 
 
 class Duty(ComfortSenseEntity, SensorEntity):
