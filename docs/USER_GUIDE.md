@@ -6,7 +6,7 @@
 
 | Temperature source | Behavior |
 |---|---|
-| **Auto** | Follows the room with the highest moving occupancy average. Ties keep the current room. Little meaningful occupancy falls back to Average. |
+| **Auto** | Equally averages rooms within the grouping tolerance of the occupancy leader. Zero tolerance follows one winner. Little meaningful occupancy falls back to Average. |
 | **Average** | Controls the equal-room mean through Average's own PID. A room with three sensors has the same weight as a room with one. |
 | **A room name** | Pins that room. Losing all its valid temperature readings suppresses heating instead of silently choosing another room. |
 
@@ -17,7 +17,7 @@ excluded. All rooms still receive heat together because there is one shared rela
 
 The main dial sets **one comfort target** and returns to Comfort. It stays the same as Auto changes rooms or you select a room or Average. The **Active room** sensor shows the actual room being followed, even when the selector says Auto. Temperature fields follow HA's Celsius/Fahrenheit preference.
 
-Choose reaction under **Configure → Thermostat basics**:
+Choose reaction on the thermostat **device page → Configuration → Occupancy reaction time** (also available in the options flow):
 
 | Reaction | Occupancy window | Typical sustained room-change buffer |
 |---|---|---|
@@ -115,3 +115,7 @@ reloads. Select Heat to resume.
 household heating patterns; do not attach it to a public issue.
 
 [Native weekly scheduling, block overrides and priority →](SCHEDULING.md)
+
+## Occupancy groups and room buffers
+
+On the device page, open **Configuration** to change grouping tolerance, reaction time, each room’s Warm/Cold buffers, tuning choices, manual gains and preset temperatures. Changes persist immediately without restarting the controller. [Behavior and buffer examples](ROOM_PROTECTION.md).

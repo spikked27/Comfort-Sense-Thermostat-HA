@@ -3,7 +3,7 @@
 [Overview](../README.md) · [User guide](USER_GUIDE.md)
 
 The thermostat has one target. The source selector chooses Auto, Average or a room;
-**Active room** shows what Auto actually follows. Include both on your dashboard.
+**Active room** lists all rooms Auto currently follows, including occupancy groups. Include both on your dashboard.
 Room occupancy sensors report the percentage of the moving window occupied, so a
 history graph explains why a room won. Medium uses 30 minutes of history.
 
@@ -71,3 +71,5 @@ Celsius. Use the room temperature entities or the climate's displayed
 
 Older room-target number entities are removed in 0.3. Replace their cards with the
 thermostat dial and Active room sensor.
+
+Open the Comfort Sense device page’s **Configuration** section for reaction, grouping tolerance, per-room temperature buffers and tuning controls. All settings entities have HA’s Configuration category, so they can also be added to a dashboard entities card. [Room protection](ROOM_PROTECTION.md).

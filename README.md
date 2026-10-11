@@ -30,7 +30,7 @@ You can also pin a room or use the whole-home average.
 
 | Feature | What it means for you |
 |---|---|
-| **Room-aware comfort** | One thermostat target follows the most occupied room. Fast/Medium/Slow reaction controls switching; Medium uses a 30-minute occupancy window. |
+| **Room-aware comfort** | One thermostat target follows the most occupied room or equally averages rooms within an adjustable occupancy tolerance. |
 | **A proper Average mode** | An equal-room average has its own PID controller and tuning settings, including in Away mode. |
 | **Your choice of tuning** | Choose manual PID or automatic validated tuning independently for each room and Average. |
 | **Learning for slow heat** | Learns from ordinary heating, rather than forcing a rapid on/off autotune experiment. |
@@ -40,7 +40,7 @@ You can also pin a room or use the whole-home average.
 | **Try it alongside your thermostat** | Shadow mode calculates demand and learns without commanding your heater. |
 
 Comfort Sense controls **one heating switch for one shared heating zone**. All rooms
-receive heat together; Auto follows one room at a time. Independent heating zones need separate hardware. Operation and learning stay local to Home Assistant.
+receive heat together; Auto follows the leading occupancy group. Independent heating zones need separate hardware. Operation and learning stay local to Home Assistant.
 
 ## Install with HACS
 
@@ -98,6 +98,8 @@ remain estimates; changing weather and heating capacity can affect the result.
 [Presets, schedules, tuning choices and diagnostics explained →](docs/USER_GUIDE.md)
 
 [Dashboard cards for active room, temperatures and occupancy →](docs/DASHBOARD.md)
+
+[Occupancy grouping, live Configuration entities and room buffers →](docs/ROOM_PROTECTION.md)
 
 ## Documentation and support
 

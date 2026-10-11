@@ -5,8 +5,7 @@
 Each room has a time-weighted moving occupancy average over 10, 30 or 60 minutes
 (Fast, Medium or Slow). Any selected binary sensor On counts as occupied; unavailable
 occupancy is treated as no positive evidence and is flagged in diagnostics. The
-highest valid-room score receives full control priority. Ties retain the current
-room. A fully occupied old room and newly occupied room cross after half a window;
+leading score defines a group using symmetric relative difference (default 30%). All members have equal weight. Existing members have a 2% exit allowance. Zero tolerance follows one winner; ties retain the current room. A fully occupied old room and newly occupied room cross after half a window;
 intermittent sensor events naturally change that time. Startup assumes no history.
 Scores below a combined 0.05 fall back to Average. Confirmed home absence selects
 Away independently. Every ordinary source uses the single thermostat comfort setpoint.
@@ -21,7 +20,7 @@ data cannot be diagnosed automatically; prefer physical sensor entities.
 
 Room controllers use their own measurements. The algorithm never differentiates a
 temperature that abruptly switches from one room to another. This removes source
-changes as false temperature slopes. Auto activates only the winning room PID. Manual room selection gives that room full priority.
+changes as false temperature slopes. A single room uses its room PID. An occupancy group uses a dedicated PID on the mean measurement, with conservative P/I/D from member controllers and reset history after a membership change. Manual room selection gives that room full priority.
 
 ## Dedicated Average controller
 
@@ -128,3 +127,7 @@ provides the baseline functionality this project replaces. Comfort Sense Thermos
 is original; upstream code was inspected to understand units and restored gains.
 HA integration/entity boundaries follow the official [config-flow documentation](https://developers.home-assistant.io/docs/core/integration/config_flow/)
 and [climate entity contract](https://developers.home-assistant.io/docs/core/entity/climate/).
+
+## Room comfort bounds
+
+Per-room Warm/Cold buffers bound temperatures relative to the active thermostat target. Warm latches force heat off; cold latches activate independent protective PIDs near the lower boundary. Warm protection takes priority over cold demand. Boundaries use all valid configured room readings. These protections also apply to schedules and presets, and respect Off/Shadow. Device Configuration entities update and persist values without unloading the runtime; ordinary options changes still reload. [Details](ROOM_PROTECTION.md).

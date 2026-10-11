@@ -4,7 +4,7 @@
     "step": {
       "system": {
         "title": "Thermostat basics",
-        "description": "Choose your relay and optional outdoor/home sensors. Medium uses 30 minutes of occupancy history, giving about 15 minutes before a sustained room change. Set the temperature on the thermostat card. Shadow mode observes without operating the relay.",
+        "description": "Choose equipment and optional outdoor/home sensors. Reaction, grouping, room protection, PID tuning and preset temperatures are also editable on the device page under Configuration. Set the comfort temperature on the thermostat card. Shadow mode observes without operating the relay.",
         "data": {
           "name": "Name",
           "heater": "Heating relay switch",
@@ -41,7 +41,7 @@
       },
       "room": {
         "title": "Room sensors and PID",
-        "description": "Select room sensors and PID tuning. Every room follows the single thermostat setpoint. Automatic tuning learns from normal heating; manual gains are on the next page.",
+        "description": "Choose room sensors and tuning. Auto can average similarly occupied rooms. Every source follows the single thermostat target. Room buffers and tuning entities are on the device page under Configuration.",
         "data": {
           "name": "Room name",
           "temperature_sensors": "Temperature sensors",
@@ -178,7 +178,7 @@
     "step": {
       "system": {
         "title": "Thermostat basics",
-        "description": "Choose your relay and optional outdoor/home sensors. Medium uses 30 minutes of occupancy history, giving about 15 minutes before a sustained room change. Set the temperature on the thermostat card. Shadow mode observes without operating the relay.",
+        "description": "Choose equipment and optional outdoor/home sensors. Reaction, grouping, room protection, PID tuning and preset temperatures are also editable on the device page under Configuration. Set the comfort temperature on the thermostat card. Shadow mode observes without operating the relay.",
         "data": {
           "name": "Name",
           "heater": "Heating relay switch",
@@ -215,7 +215,7 @@
       },
       "room": {
         "title": "Room sensors and PID",
-        "description": "Select room sensors and PID tuning. Every room follows the single thermostat setpoint. Automatic tuning learns from normal heating; manual gains are on the next page.",
+        "description": "Choose room sensors and tuning. Auto can average similarly occupied rooms. Every source follows the single thermostat target. Room buffers and tuning entities are on the device page under Configuration.",
         "data": {
           "name": "Room name",
           "temperature_sensors": "Temperature sensors",

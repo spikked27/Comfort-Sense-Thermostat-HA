@@ -22,11 +22,11 @@ pip install pytest-homeassistant-custom-component 'homeassistant>=2026.10.0,<202
 python -m pytest ha_tests -v
 ```
 
-Sixteen integration tests exercise the actual config flow, setup/unload, duplicate
+Nineteen integration tests exercise the actual config flow, setup/unload, duplicate
 heater checks, invalid-room handling, independent room/Average options, and active
 shutdown, integration visibility, Fahrenheit input/output, entry migration and
 native weekly schedule preheat/restoration, the six-field setup, conditional manual gains, Advanced options, target-entity cleanup and active-room/occupancy diagnostics. They pass in Linux GitHub CI alongside
-the core/runtime suite (57 tests in the current local build). CI runs
+the core/runtime suite (64 tests in the current local build). CI runs
 them separately so local HA fakes cannot contaminate real HA imports. The available
 Windows runtime is Python 3.12; real HA verification was performed on Linux.
 
@@ -49,3 +49,5 @@ a version tag and attach the generated integration
 ZIP after CI passes. Broader HACS catalog inclusion is a separate submission.
 
 The 0.3 usability changes pass all 73 tests in [GitHub CI](https://github.com/spikked27/Comfort-Sense-Thermostat-HA/actions/runs/38161847215). The test runs cover fresh setup through save and independent options pages; they do not establish performance on a particular furnace.
+
+The 0.4 grouping/protection implementation passes all 83 tests in [GitHub CI](https://github.com/spikked27/Comfort-Sense-Thermostat-HA/actions/runs/38166375107). Tests cover equal group control, membership reset, warm/cold priority, Configuration categories, temperature-difference conversion, persisted settings and updates without unloading an active controller.

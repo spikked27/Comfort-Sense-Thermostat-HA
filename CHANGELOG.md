@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0a1
+
+- Auto groups similarly occupied rooms using configurable relative tolerance, default 30%.
+- Control the equal-room group temperature with a dedicated PID and reset history on membership changes.
+- Add per-room warm/cold buffers; warm cutoff overrides cold recovery when shared-zone goals conflict.
+- Add live Configuration entities for reaction, grouping, buffers, tuning and preset temperatures.
+- Persist entity settings without unloading the active thermostat or resetting occupancy timing.
+- Convert Fahrenheit buffers as differences, not absolute temperatures.
+
+
 ## 0.3.0a1
 
 - One thermostat setpoint follows the winning room in Auto; remove obsolete room targets.
