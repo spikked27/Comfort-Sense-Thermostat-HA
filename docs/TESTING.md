@@ -22,9 +22,11 @@ pip install pytest-homeassistant-custom-component 'homeassistant>=2026.10.0,<202
 python -m pytest ha_tests -v
 ```
 
-Six integration tests exercise the actual config flow, setup/unload, duplicate
+Twelve integration tests exercise the actual config flow, setup/unload, duplicate
 heater checks, invalid-room handling, independent room/Average options, and active
-shutdown. They pass in Linux GitHub CI alongside 39 core/runtime tests. CI runs
+shutdown, integration visibility, Fahrenheit input/output, entry migration and
+native weekly schedule preheat/restoration. They pass in Linux GitHub CI alongside
+the core/runtime suite (53 tests in the current local build). CI runs
 them separately so local HA fakes cannot contaminate real HA imports. The available
 Windows runtime is Python 3.12; real HA verification was performed on Linux.
 
