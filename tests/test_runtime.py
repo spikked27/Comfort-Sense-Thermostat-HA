@@ -258,6 +258,15 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.r.samples["_average"]),0)
         self.assertEqual(len(self.r.samples["a"]),1)
 
+    async def test_brief_sensor_outage_starts_new_learning_segment(self):
+        await self.r.tick()
+        self.set("sensor.b","unknown")
+        self.advance(30);await self.r.tick()
+        self.set("sensor.b","22","°C")
+        self.advance(30);await self.r.tick()
+        self.assertNotEqual(self.r.samples["b"][0].segment,self.r.samples["b"][-1].segment)
+        self.assertNotEqual(self.r.samples["_average"][0].segment,self.r.samples["_average"][-1].segment)
+
     async def test_average_signature_survives_json_roundtrip(self):
         import json
         signature=self.r.signature(self.r.plants[-1])

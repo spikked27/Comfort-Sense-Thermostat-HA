@@ -176,5 +176,18 @@ class LearningTests(unittest.TestCase):
         self.assertIsNotNone(model,status)
         self.assertLess(model.samples,len(rows))
 
+    def test_small_temperature_quantization_can_still_identify_slow_plant(self):
+        rows=[learning.Sample(s.time,round(s.temperature*10)/10,s.outdoor,s.heat) for s in plant()]
+        model,status=learning.identify(rows)
+        self.assertIsNotNone(model,status)
+        self.assertAlmostEqual(model.heat_rate,1.8,delta=0.2)
+
+    def test_outage_segments_not_bridged(self):
+        rows=[learning.Sample(s.time,s.temperature,s.outdoor,s.heat,int(i>=500))
+              for i,s in enumerate(plant())]
+        model,status=learning.identify(rows)
+        self.assertIsNotNone(model,status)
+        self.assertLess(model.samples,len(rows)-12)
+
 
 if __name__=="__main__": unittest.main()

@@ -32,6 +32,8 @@ class Runtime:
         self.pids = {r["id"]: PID(*(r[k] for k in ("kp", "ki", "kd"))) for r in self.plants}
         self.occupancy = {r["id"]: Occupancy() for r in self.rooms}
         self.samples = {r["id"]: deque(maxlen=40320) for r in self.plants}  # 14 days @ 30sec
+        self.segments = {r["id"]: 0 for r in self.plants}
+        self.training_valid = {r["id"]: False for r in self.plants}
         self.models, self.learning_status, self.targets = {}, {}, {}
         self.applied = {}
         self.relay = Relay(self.config["pwm_seconds"], self.config["min_on_seconds"], self.config["min_off_seconds"])
@@ -77,6 +79,7 @@ class Runtime:
                         self.samples[rid].append(sample)
             except (KeyError, TypeError, ValueError):
                 self.models.pop(rid, None)
+            self.segments[rid] = max((s.segment for s in self.samples[rid]), default=0) + 1
             if rid in self.models and r["tuning_mode"] == "auto":
                 self.pids[rid].tune(*self.models[rid].gains(self.config["pwm_seconds"]))
                 self.applied[rid] = self.models[rid].fitted_at
@@ -302,11 +305,16 @@ class Runtime:
                     _LOGGER.warning("Heater command failed: %s", err)
             if now-self.last_sample >= 29:
                 self.last_sample = now
-                for rid in valid:
-                    if self.actual is not None and self.outdoor is not None:
-                        self.samples[rid].append(Sample(now, self.room_data[rid]["temperature"], self.outdoor, float(self.actual)))
-                if len(valid) == len(self.rooms) and self.actual is not None and self.outdoor is not None:
-                    self.samples[AVERAGE].append(Sample(now,average_temperature,self.outdoor,float(self.actual)))
+                for plant in self.plants:
+                    rid = plant["id"]
+                    usable = self.actual is not None and self.outdoor is not None and (
+                        len(valid) == len(self.rooms) if rid == AVERAGE else rid in valid)
+                    if not usable and self.training_valid[rid]:
+                        self.segments[rid] += 1
+                    self.training_valid[rid] = usable
+                    if usable:
+                        self.samples[rid].append(Sample(now,self.room_data[rid]["temperature"],
+                            self.outdoor,float(self.actual),self.segments[rid]))
                 if now-self.last_save >= 300:
                     self.last_save = now
                     self.save_later()

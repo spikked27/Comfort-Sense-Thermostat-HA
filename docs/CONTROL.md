@@ -65,7 +65,8 @@ switch, not a compressor, modulating boiler bus, multi-stage furnace, or cooling
 ## Passive slow-system identification
 
 Thirty-second observations are retained for at most fourteen days. Temperature
-slopes are evaluated over five-minute intervals; relay observations are integrated
+slopes use overlapping fifteen-minute intervals on a five-minute grid to reduce
+quantization noise on slow systems; relay observations are integrated
 over the delayed interval. A small least-squares model estimates:
 
 ```
@@ -82,7 +83,9 @@ of observations fit/select the delay. The final 25% is an untouched chronologica
 holdout. All delays use the same initial coverage. At least 48 hours, 400 valid
 observations, twelve heater transitions, and both heating states in the holdout are
 required. Singular fits, implausible coefficients, discontinuous data, and extreme
-slopes are rejected. Held-out slope RMSE must be at most 0.6°C/hour and improve at
+slopes are rejected. No slope window crosses the train/holdout boundary, and
+outages start new segments that cannot be bridged even if brief. Held-out slope
+RMSE must be at most 0.6°C/hour and improve at
 least 25% over a constant training-slope baseline. These gates are engineering
 filters; they are not a calibrated statistical confidence interval.
 

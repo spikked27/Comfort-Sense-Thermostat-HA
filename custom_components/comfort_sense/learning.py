@@ -14,6 +14,7 @@ class Sample:
     temperature: float
     outdoor: float
     heat: float
+    segment: int = 0
 
 
 @dataclass(frozen=True)
@@ -94,7 +95,7 @@ def identify(samples, previous=None):
     if len(data) < 400 or data[-1].time - data[0].time < 48 * 3600:
         return None, "Collecting: need at least 48 hours and 400 valid samples"
     # Distinct on/off transitions, not just hours of unchanged relay state.
-    if sum(a.heat != b.heat for a, b in zip(data, data[1:])) < 12:
+    if sum(a.heat != b.heat and a.segment == b.segment for a, b in zip(data, data[1:])) < 12:
         return None, "Collecting: need at least 12 observed heating transitions"
     times = [s.time for s in data]
     # Preserve 30-second relay observations while fitting 5-minute temperature slopes.
@@ -106,9 +107,10 @@ def identify(samples, previous=None):
     best = None
     for delay in range(0, 10801, 300):
         train, holdout = [], []
-        for a, z in zip(coarse, coarse[1:]):
+        # Overlapping fifteen-minute slopes reduce quantization noise on slow plants.
+        for a, z in zip(coarse, coarse[3:]):
             dt = z.time - a.time
-            if not 240 <= dt <= 420:
+            if not 840 <= dt <= 1200 or a.segment != z.segment:
                 continue
             if a.time - data[0].time < 10800:
                 continue  # same initial coverage for every candidate delay
@@ -120,6 +122,10 @@ def identify(samples, previous=None):
             current_last = bisect_right(times, z.time) - 1
             if first < 0 or any(times[j+1] - times[j] > 420 for j in range(first, last)) or any(times[j+1]-times[j]>420 for j in range(current_first,current_last)):
                 continue
+            if any(data[j].segment != a.segment for j in range(first,current_last+1)):
+                continue
+            if a.time < split <= z.time:
+                continue  # no feature windows overlapping the chronological split
             total = 0.0
             for j in range(first, last + 1):
                 lo, hi = max(begin, times[j]), min(end, times[j+1] if j+1 < len(times) else end)
