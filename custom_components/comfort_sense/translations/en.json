@@ -1,0 +1,143 @@
+{
+  "title": "Comfort Sense Thermostat",
+  "config": {
+    "step": {
+      "system": {
+        "title": "Heating system and Average PID",
+        "description": "Shadow mode never commands the relay. All setup temperatures are Celsius. Average has its own PID. Automatic tuning uses validated ordinary heating observations and your manual gains as fallback.",
+        "data": {
+          "name": "Name",
+          "heater": "Heating relay switch",
+          "outdoor_sensor": "Outdoor temperature sensor (required for learning)",
+          "home_sensor": "Home presence or zone person count",
+          "shadow": "Shadow mode: observe without heater commands",
+          "average_tuning_mode": "Average PID tuning mode",
+          "average_kp": "Average manual Kp (duty/°C)",
+          "average_ki": "Average manual Ki (duty/°C/s)",
+          "average_kd": "Average manual Kd (duty·s/°C)",
+          "away_temperature": "Away target (°C)",
+          "boost_temperature": "Boost target (°C)",
+          "sleep_temperature": "Sleep target (°C)",
+          "max_temperature": "Maximum room safety temperature (°C)",
+          "boost_minutes": "Boost duration (minutes)",
+          "away_delay_minutes": "Confirmed absence delay (minutes)",
+          "occupancy_rise_minutes": "Occupancy buildup time (minutes)",
+          "occupancy_decay_minutes": "Occupancy decay time (minutes)",
+          "sensor_timeout_minutes": "Temperature report freshness allowance (minutes)",
+          "min_on_seconds": "Minimum relay on time (seconds)",
+          "min_off_seconds": "Minimum relay off time (seconds)",
+          "pwm_seconds": "Slow PWM period (seconds)",
+          "max_preheat_minutes": "Maximum morning preheat (minutes)",
+          "fallback_heat_rate": "Fallback warm-up estimate (°C/hour)",
+          "sleep_room": "Sleep temperature source"
+        }
+      },
+      "manage": {
+        "title": "Rooms and settings",
+        "description": "Add rooms, edit their sensors and PID, or review the configuration.",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "room": {
+        "title": "Room sensors, PID and morning comfort",
+        "description": "Select physical temperature sensors. Choose manual gains or automatic tuning independently for this room. Morning time means the desired arrival time, not the time to switch the heater on.",
+        "data": {
+          "name": "Room name",
+          "temperature_sensors": "Temperature sensors",
+          "occupancy_sensors": "Occupancy sensors (any On)",
+          "target": "Comfort target (°C)",
+          "tuning_mode": "Room PID tuning mode",
+          "kp": "Manual Kp (duty/°C)",
+          "ki": "Manual Ki (duty/°C/s)",
+          "kd": "Manual Kd (duty·s/°C)",
+          "morning_enabled": "Enable reach-by morning schedule",
+          "morning_time": "Comfort arrival time (HH:MM, local)",
+          "morning_target": "Morning target (°C)",
+          "morning_duration": "Comfort hold after arrival (minutes)",
+          "morning_days": "Morning weekdays"
+        }
+      },
+      "review": {
+        "title": "Review thermostat configuration",
+        "description": "{summary}"
+      }
+    },
+    "error": {
+      "heater_already_configured": "This relay already belongs to another Comfort Sense Thermostat entry.",
+      "heater_missing": "The selected heating switch does not exist.",
+      "invalid_room": "Check the unique room name, temperature units, PID gains and morning schedule. Targets must be below the safety limit.",
+      "invalid_config": "Check system settings. PWM must cover minimum on and off times; targets must be below the safety limit."
+    }
+  },
+  "options": {
+    "step": {
+      "system": {
+        "title": "Heating system and Average PID",
+        "description": "Shadow mode never commands the relay. All setup temperatures are Celsius. Average has its own PID. Automatic tuning uses validated ordinary heating observations and your manual gains as fallback.",
+        "data": {
+          "name": "Name",
+          "heater": "Heating relay switch",
+          "outdoor_sensor": "Outdoor temperature sensor (required for learning)",
+          "home_sensor": "Home presence or zone person count",
+          "shadow": "Shadow mode: observe without heater commands",
+          "average_tuning_mode": "Average PID tuning mode",
+          "average_kp": "Average manual Kp (duty/°C)",
+          "average_ki": "Average manual Ki (duty/°C/s)",
+          "average_kd": "Average manual Kd (duty·s/°C)",
+          "away_temperature": "Away target (°C)",
+          "boost_temperature": "Boost target (°C)",
+          "sleep_temperature": "Sleep target (°C)",
+          "max_temperature": "Maximum room safety temperature (°C)",
+          "boost_minutes": "Boost duration (minutes)",
+          "away_delay_minutes": "Confirmed absence delay (minutes)",
+          "occupancy_rise_minutes": "Occupancy buildup time (minutes)",
+          "occupancy_decay_minutes": "Occupancy decay time (minutes)",
+          "sensor_timeout_minutes": "Temperature report freshness allowance (minutes)",
+          "min_on_seconds": "Minimum relay on time (seconds)",
+          "min_off_seconds": "Minimum relay off time (seconds)",
+          "pwm_seconds": "Slow PWM period (seconds)",
+          "max_preheat_minutes": "Maximum morning preheat (minutes)",
+          "fallback_heat_rate": "Fallback warm-up estimate (°C/hour)",
+          "sleep_room": "Sleep temperature source"
+        }
+      },
+      "manage": {
+        "title": "Rooms and settings",
+        "description": "Add rooms, edit their sensors and PID, or review the configuration.",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "room": {
+        "title": "Room sensors, PID and morning comfort",
+        "description": "Select physical temperature sensors. Choose manual gains or automatic tuning independently for this room. Morning time means the desired arrival time, not the time to switch the heater on.",
+        "data": {
+          "name": "Room name",
+          "temperature_sensors": "Temperature sensors",
+          "occupancy_sensors": "Occupancy sensors (any On)",
+          "target": "Comfort target (°C)",
+          "tuning_mode": "Room PID tuning mode",
+          "kp": "Manual Kp (duty/°C)",
+          "ki": "Manual Ki (duty/°C/s)",
+          "kd": "Manual Kd (duty·s/°C)",
+          "morning_enabled": "Enable reach-by morning schedule",
+          "morning_time": "Comfort arrival time (HH:MM, local)",
+          "morning_target": "Morning target (°C)",
+          "morning_duration": "Comfort hold after arrival (minutes)",
+          "morning_days": "Morning weekdays"
+        }
+      },
+      "review": {
+        "title": "Review thermostat configuration",
+        "description": "{summary}"
+      }
+    },
+    "error": {
+      "heater_already_configured": "This relay already belongs to another Comfort Sense Thermostat entry.",
+      "heater_missing": "The selected heating switch does not exist.",
+      "invalid_room": "Check the unique room name, temperature units, PID gains and morning schedule. Targets must be below the safety limit.",
+      "invalid_config": "Check system settings. PWM must cover minimum on and off times; targets must be below the safety limit."
+    }
+  }
+}

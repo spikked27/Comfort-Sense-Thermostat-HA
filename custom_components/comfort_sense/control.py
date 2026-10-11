@@ -1,0 +1,170 @@
+"""Deterministic controls. Time in seconds, temperature in C, duty in [0, 1]."""
+from dataclasses import dataclass
+import math
+
+
+def clamp(value, low=0.0, high=1.0):
+    return max(low, min(high, value))
+
+
+def celsius(value, unit):
+    value = float(value)
+    if not math.isfinite(value):
+        raise ValueError("Nonfinite temperature")
+    if unit in ("°F", "F"):
+        value = (value - 32) * 5 / 9
+    elif unit in ("K", "kelvin"):
+        value -= 273.15
+    elif unit not in ("°C", "C"):
+        raise ValueError("Temperature unit required")
+    if not -60 <= value <= 70:
+        raise ValueError("Implausible temperature")
+    return value
+
+
+def presence(state):
+    """Home signal: binary, person/tracker or zone person count. Unknown != away."""
+    if state in (None, "unknown", "unavailable"):
+        return None
+    if state in ("on", "home"):
+        return True
+    if state in ("off", "not_home"):
+        return False
+    try:
+        value = float(state)
+        return value > 0 if math.isfinite(value) else None
+    except ValueError:
+        return False  # person at a named zone
+
+
+@dataclass
+class Occupancy:
+    score: float = 0.0
+
+    def update(self, occupied, dt, rise=300, decay=1800):
+        # Unavailable occupancy decays; never masquerades as confirmed home absence.
+        target = 1.0 if occupied else 0.0
+        tau = rise if target > self.score else decay
+        self.score = target + (self.score - target) * math.exp(-max(0, dt) / tau)
+        return self.score
+
+
+def weights(scores, valid, average=False, selected="Auto"):
+    if not valid:
+        return {}
+    if selected not in ("Auto", "Average"):
+        return {selected: 1.0} if selected in valid else {}
+    if average or selected == "Average" or sum(scores.get(r, 0) for r in valid) < 0.05:
+        return {r: 1 / len(valid) for r in valid}
+    # Squaring favors the most occupied room without abrupt pair/room changes.
+    raw = {r: scores.get(r, 0.0) ** 2 for r in valid}
+    total = sum(raw.values())
+    return {r: v / total for r, v in raw.items()}
+
+
+@dataclass
+class PID:
+    kp: float = 0.2
+    ki: float = 0.000035
+    kd: float = 0.0
+    integral: float = 0.0
+    previous: float | None = None
+    derivative: float = 0.0
+    output: float = 0.0
+    last_target: float | None = None
+
+    def update(self, temperature, target, dt, feedforward=0.0, active=True,
+               constrained=False):
+        dt = clamp(dt, 0, 120)
+        if self.previous is not None and dt > 0:
+            slope = (temperature - self.previous) / dt
+            alpha = 1 - math.exp(-dt / 600)
+            self.derivative += alpha * (slope - self.derivative)
+        self.previous = temperature
+        if not active:
+            self.integral = 0.0
+            self.output = 0.0
+            self.last_target = target
+            return 0.0
+        error = target - temperature
+        base = feedforward + self.kp * error - self.kd * self.derivative
+        if self.last_target is not None and abs(target - self.last_target) > 0.2:
+            # Remove stored excess heat after a setback; retain bias on small changes.
+            self.integral = min(self.integral, max(0.0, self.output - base))
+        raw = base + self.integral
+        if not constrained and (0 < raw < 1 or raw >= 1 and error < 0 or raw <= 0 and error > 0):
+            self.integral = clamp(self.integral + self.ki * error * dt, -0.5, 1)
+        self.output = clamp(base + self.integral)
+        self.last_target = target
+        return self.output
+
+    def tune(self, kp, ki, kd=0.0):
+        """Hold the last output on gain changes; derivative remains on measurement."""
+        if self.previous is not None and self.last_target is not None:
+            self.integral += (self.kp - kp) * (self.last_target - self.previous)
+        self.kp, self.ki, self.kd = kp, ki, kd
+        self.integral = clamp(self.integral, -0.5, 1)
+
+
+@dataclass
+class Relay:
+    """Fixed-window slow PWM with carried duty debt for sub-minimum pulses.
+
+    A 5% demand can earn one 5-minute pulse over several 20-minute windows.
+    Output decisions are based on observed relay state, never command success alone.
+    """
+    window: float = 1200
+    min_on: float = 300
+    min_off: float = 300
+    credit: float = 0.0
+    pulse_end: float = 0.0
+    changed: float | None = None
+    observed: bool | None = None
+    start: float | None = None
+
+    def observe(self, now, on):
+        if self.observed is None or self.observed != on:
+            self.changed = now
+            self.observed = on
+
+    def decide(self, now, duty, on, force_off=False):
+        self.observe(now, on)
+        if force_off:
+            self.credit = 0.0
+            self.pulse_end = now
+            self.start = now
+            return False
+        if duty <= 0:
+            self.credit = 0.0
+            self.pulse_end = now
+        if self.start is None:
+            self.start = now - self.window
+        if now - self.start >= self.window:
+            self.start = now
+            self.credit = min(self.credit + clamp(duty) * self.window, 2 * self.window)
+            if self.credit >= self.min_on:
+                length = min(self.credit, self.window)
+                # Avoid an off interval shorter than min_off inside the window.
+                if self.window - length < self.min_off:
+                    length = self.window
+                self.credit -= length
+                self.pulse_end = now + length
+        wanted = now < self.pulse_end and duty > 0
+        if wanted != on and now - self.changed < (self.min_on if on else self.min_off):
+            return on
+        return wanted
+
+
+def deadline_plan(now, deadline, duration, temperature, target, model=None,
+                  outdoor=None, fallback_rate=0.5, maximum=14400):
+    """Return preheat status and feasibility. Caller supplies timezone-aware epochs."""
+    lead = (max(0, target - temperature) / fallback_rate) * 3600 + 1800
+    confidence = "fallback"
+    if model is not None and outdoor is not None:
+        lead = model.time_to_target(temperature, target, outdoor)
+        confidence = "learned"
+    reachable = math.isfinite(lead) and lead <= maximum
+    lead = min(maximum, lead * 1.15)  # conservative allowance; bounded energy budget
+    active = deadline - lead <= now < deadline + duration
+    return {"active": active, "lead_seconds": lead, "reachable": reachable,
+            "confidence": confidence, "deadline": deadline}
