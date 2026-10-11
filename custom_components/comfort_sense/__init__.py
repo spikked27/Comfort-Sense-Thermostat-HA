@@ -2,6 +2,16 @@
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
 from .const import DOMAIN, PLATFORMS
 from .runtime import Runtime
+from .scheduling import migrate_config
+
+
+async def async_migrate_entry(hass,entry):
+    if entry.version>2:
+        return False
+    if entry.version==1:
+        data=migrate_config({**entry.data,**entry.options})
+        hass.config_entries.async_update_entry(entry,data=data,options={},version=2)
+    return True
 
 
 async def async_setup_entry(hass, entry):

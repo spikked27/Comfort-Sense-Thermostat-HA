@@ -1,5 +1,5 @@
 """Per-room comfort targets (native C, explicitly labelled)."""
-from homeassistant.components.number import NumberEntity, NumberMode
+from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.const import UnitOfTemperature
 from homeassistant.exceptions import ServiceValidationError
 from .const import DOMAIN
@@ -12,6 +12,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 
 class RoomTarget(ComfortSenseEntity, NumberEntity):
+    _attr_device_class = NumberDeviceClass.TEMPERATURE
     _attr_native_min_value = 5
     _attr_native_step = 0.1
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS

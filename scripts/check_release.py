@@ -3,6 +3,7 @@ import ast
 import json
 import re
 import struct
+import tomllib
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs, unquote
 
@@ -19,13 +20,14 @@ def main():
     manifest=json.loads((COMPONENT/'manifest.json').read_text())
     assert manifest['domain']=='comfort_sense'
     assert manifest['config_flow'] is True
-    assert manifest['version']=='0.1.0a1'
+    assert manifest['version']==tomllib.loads((ROOT/'pyproject.toml').read_text())['project']['version']
+    assert manifest['integration_type']=='service'
     assert (ROOT/'LICENSE').is_file()
     strings=json.loads((COMPONENT/'strings.json').read_text(encoding='utf-8'))
     translated=json.loads((COMPONENT/'translations/en.json').read_text(encoding='utf-8'))
     assert strings==translated
     for section in ['config','options']:
-        assert set(strings[section]['step'])=={'system','manage','room','review'}
+        assert set(strings[section]['step'])=={'system','manage','room','review','init','schedules','schedule','schedule_settings'}
     for path in COMPONENT.rglob('*'):
         if path.is_file() and '__pycache__' not in path.parts:
             assert path.suffix in ('.py','.json','.png'), f'Unexpected integration artifact: {path.name}'

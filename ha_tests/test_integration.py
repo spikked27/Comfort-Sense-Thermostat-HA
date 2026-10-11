@@ -9,8 +9,7 @@ DOMAIN="comfort_sense"
 def room():
     return {"id":"study","name":"Study","temperature_sensors":["sensor.study"],
         "occupancy_sensors":["binary_sensor.study"],"target":21,"kp":0.2,"ki":0.000035,"kd":0,
-        "tuning_mode":"manual","morning_enabled":False,"morning_time":"07:00",
-        "morning_target":21,"morning_duration":60,"morning_days":[0,1,2,3,4]}
+        "tuning_mode":"manual"}
 
 
 async def test_user_room_review_and_setup(hass):
@@ -24,7 +23,6 @@ async def test_user_room_review_and_setup(hass):
     result=await hass.config_entries.flow.async_configure(result["flow_id"],{"action":"add"})
     assert result["step_id"]=="room"
     r=room();r.pop("id")
-    r["morning_days"]=[str(d) for d in r["morning_days"]]
     result=await hass.config_entries.flow.async_configure(result["flow_id"],r)
     assert result["step_id"]=="manage"
     result=await hass.config_entries.flow.async_configure(result["flow_id"],{"action":"finish"})
@@ -64,7 +62,7 @@ async def test_invalid_room_rejected(hass):
     flow=await hass.config_entries.flow.async_init(DOMAIN,context={"source":SOURCE_USER})
     flow=await hass.config_entries.flow.async_configure(flow["flow_id"],{"name":"Test","heater":"switch.heat","shadow":True})
     flow=await hass.config_entries.flow.async_configure(flow["flow_id"],{"action":"add"})
-    r=room();r.pop("id");r["name"]="Average";r["morning_days"]=["0"]
+    r=room();r.pop("id");r["name"]="Average"
     result=await hass.config_entries.flow.async_configure(flow["flow_id"],r)
     assert result["errors"]["base"]=="invalid_room"
 
@@ -76,10 +74,11 @@ async def test_room_options_update_manual_fallback_without_changing_average(hass
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
     result=await hass.config_entries.options.async_init(entry.entry_id)
-    assert result["step_id"]=="manage"
+    assert result["step_id"]=="init"
+    result=await hass.config_entries.options.async_configure(result["flow_id"],{"next_step_id":"manage"})
     result=await hass.config_entries.options.async_configure(result["flow_id"],{"action":"edit:study"})
     update=room();update.pop("id")
-    update.update(kp=0.35,tuning_mode="auto",morning_days=["0","1"])
+    update.update(kp=0.35,tuning_mode="auto")
     result=await hass.config_entries.options.async_configure(result["flow_id"],update)
     result=await hass.config_entries.options.async_configure(result["flow_id"],{"action":"finish"})
     result=await hass.config_entries.options.async_configure(result["flow_id"],{})

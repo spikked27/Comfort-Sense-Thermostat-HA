@@ -16,6 +16,7 @@ from .const import AVERAGE, DOMAIN
 from .control import Occupancy, PID, Relay, celsius, deadline_plan, presence, weights
 from .learning import Sample, ThermalModel, identify
 from .settings import validate
+from .scheduling import windows, choose
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,6 +49,9 @@ class Runtime:
         self.reason = "Starting"
         self.current_temperature = self.target_temperature = None
         self.room_data = {}
+        self.schedule_cache, self.schedule_status = {}, {}
+        self.schedule_plans = []
+        self.last_schedule_refresh = 0.0
         self.listeners, self.unsubs = [], []
         self.lock = asyncio.Lock()
         self.store = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
@@ -70,9 +74,11 @@ class Runtime:
             if saved.get("signatures", {}).get(rid) != self.signature(r):
                 continue  # sensor/actuator changes invalidate plant history and learned gains
             try:
-                model = ThermalModel(**saved["models"][rid])
-                if all(math.isfinite(v) for v in asdict(model).values()) and 0.05 <= model.heat_rate <= 10 and 0.002 <= model.loss_rate <= 0.5 and 0 <= model.delay <= 10800 and now-model.fitted_at < 14*86400:
-                    self.models[rid] = model
+                model_data = saved.get("models",{}).get(rid)
+                if model_data:
+                    model = ThermalModel(**model_data)
+                    if all(math.isfinite(v) for v in asdict(model).values()) and 0.05 <= model.heat_rate <= 10 and 0.002 <= model.loss_rate <= 0.5 and 0 <= model.delay <= 10800 and now-model.fitted_at < 14*86400:
+                        self.models[rid] = model
                 for row in saved.get("samples", {}).get(rid, []):
                     sample = Sample(**row)
                     if all(math.isfinite(v) for v in asdict(sample).values()) and now-14*86400 <= sample.time <= now:
@@ -84,6 +90,7 @@ class Runtime:
                 self.pids[rid].tune(*self.models[rid].gains(self.config["pwm_seconds"]))
                 self.applied[rid] = self.models[rid].fitted_at
         entities = {self.config["heater"], self.config["outdoor_sensor"], self.config["home_sensor"]}
+        entities.update(s["entity_id"] for s in self.config["schedules"])
         for r in self.rooms:
             entities.update(r["temperature_sensors"] + r["occupancy_sensors"])
         self.unsubs.append(async_track_state_change_event(self.hass, list(entities - {""}), self.changed))
@@ -96,6 +103,8 @@ class Runtime:
 
     @callback
     def changed(self, event):
+        if event.data.get("entity_id","").startswith("schedule."):
+            self.last_schedule_refresh = 0.0
         self.hass.async_create_task(self.tick())
 
     @callback
@@ -125,27 +134,70 @@ class Runtime:
         state = self.hass.states.get(self.config["home_sensor"])
         return presence(state.state if state else None)
 
-    def morning(self, room, now, temperature, away):
-        if away or not room["morning_enabled"] or self.preset in ("away", "boost"):
-            return {"active": False}
-        local = dt_util.as_local(dt_util.utc_from_timestamp(now))
-        hour, minute = map(int, room["morning_time"].split(":"))
-        plans = []
-        # Yesterday can still be within its hold period; tomorrow may preheat before midnight.
-        for offset in (-1, 0, 1):
-            date = local.date() + timedelta(days=offset)
-            if date.weekday() not in room["morning_days"]:
+    async def refresh_schedules(self,now):
+        if now-self.last_schedule_refresh<60:
+            return
+        self.last_schedule_refresh=now
+        for binding in self.config["schedules"]:
+            eid=binding["entity_id"]
+            if not eid:
+                self.schedule_status[binding["id"]]="Migrated weekly schedule; connect a Schedule helper to edit times"
                 continue
-            candidate = local.replace(year=date.year, month=date.month, day=date.day,
-                                      hour=hour, minute=minute, second=0, microsecond=0, fold=0)
-            # Resolve nonexistent wall times by round-tripping through UTC (spring DST).
-            deadline = dt_util.as_local(dt_util.as_utc(candidate)).timestamp()
-            plan = deadline_plan(now, deadline, room["morning_duration"] * 60,
-                                 temperature, room["morning_target"], self.model(room["id"], now),
-                                 self.outdoor, self.config["fallback_heat_rate"],
-                                 self.config["max_preheat_minutes"] * 60)
-            plans.append(plan)
-        return next((p for p in plans if p["active"]), min(plans, key=lambda p: abs(p["deadline"]-now)) if plans else {"active": False})
+            state=self.hass.states.get(eid)
+            if not state or state.state not in ("on","off"):
+                self.schedule_cache.pop(eid,None)
+                self.schedule_status[binding["id"]]="Schedule helper unavailable"
+                continue
+            try:
+                async with asyncio.timeout(5):
+                    response=await self.hass.services.async_call("schedule","get_schedule",
+                        {"entity_id":eid},blocking=True,return_response=True)
+                weekly=response[eid]
+                self.schedule_cache[eid]=weekly
+                self.schedule_status[binding["id"]]="Connected"
+            except (HomeAssistantError,TimeoutError,KeyError,TypeError):
+                self.schedule_cache.pop(eid,None)
+                self.schedule_status[binding["id"]]="Could not read Schedule helper"
+
+    def plan_schedules(self,now,valid,scores,away):
+        if away or self.preset=="boost":
+            self.schedule_plans=[]
+            return []
+        local=dt_util.as_local(dt_util.utc_from_timestamp(now))
+        plans=[]
+        for binding in self.config["schedules"]:
+            weekly=binding.get("weekly") if not binding["entity_id"] else self.schedule_cache.get(binding["entity_id"])
+            if weekly is None:
+                continue
+            if binding["entity_id"]:
+                state=self.hass.states.get(binding["entity_id"])
+                if not state or state.state not in ("on","off"):
+                    continue  # never run cached blocks from an unavailable helper
+            try:
+                candidates=windows(binding,weekly,local,self.rooms,self.config["max_temperature"])
+                candidates=sorted((w for w in candidates if w.end>now),key=lambda w:w.start)
+                upcoming=next((w for w in candidates if w.start>now),None)
+                for window in candidates:
+                    if window.start>now+self.config["max_preheat_minutes"]*60 and window is not upcoming:
+                        continue
+                    selection=weights(scores,valid,selected=window.source)
+                    temperature=sum(self.room_data[rid]["temperature"]*weight for rid,weight in selection.items()) if selection else None
+                    model=self.model(window.source,now) if window.source not in ("Auto","Average") else (
+                        self.model(AVERAGE,now) if len(valid)==len(self.rooms) and (window.source=="Average" or sum(scores.get(rid,0) for rid in valid)<0.05) else None)
+                    prediction=(deadline_plan(now,window.start,window.end-window.start,temperature,
+                        window.target,model,self.outdoor,self.config["fallback_heat_rate"],self.config["max_preheat_minutes"]*60)
+                        if temperature is not None else {"lead_seconds":0,"reachable":False,"confidence":"input unavailable"})
+                    in_block=window.start<=now<window.end
+                    preheating=(not in_block and window.preheat and temperature is not None and
+                                temperature<window.target and window.start-prediction["lead_seconds"]<=now<window.start)
+                    plans.append({**prediction,"active":in_block or preheating,"phase":"active" if in_block else "preheat",
+                        "binding_id":window.binding_id,"entity_id":window.entity_id,"name":window.name,
+                        "source":window.source,"target":window.target,"start":window.start,"end":window.end,
+                        "priority":window.priority})
+            except (ValueError,TypeError,KeyError,OverflowError):
+                self.schedule_status[binding["id"]]="Invalid schedule block data"
+        self.schedule_plans=plans
+        return choose(plans)
 
     def model(self, rid, now):
         model = self.models.get(rid)
@@ -160,6 +212,7 @@ class Runtime:
             if self.last_tick and dt < 1:
                 return
             self.last_tick = now
+            await self.refresh_schedules(now)
             state = self.hass.states.get(self.config["heater"])
             self.actual = (state.state == "on") if state and state.state in ("on", "off") else None
             self.outdoor = self.numeric_temperature(self.config["outdoor_sensor"], now)
@@ -195,11 +248,8 @@ class Runtime:
                     target = self.config["sleep_temperature"]
                 elif self.preset == "boost":
                     target = self.config["boost_temperature"]
-                plan = self.morning(room, now, temperature, away) if temperature is not None else {"active": False}
-                if plan["active"]:
-                    target = room["morning_target"]
                 self.room_data[rid] = {"temperature": temperature, "target": target,
-                    "occupancy": scores[rid], "occupied": occupied, "morning": plan,
+                    "occupancy": scores[rid], "occupied": occupied, "schedule": {"active":False},
                     "excluded_sensors": [e for e,v in values.items() if v is None],
                     "occupancy_unavailable": [e for e,s in zip(room["occupancy_sensors"],states) if not s or s.state not in ("on", "off")]}
                 if temperature is not None:
@@ -207,17 +257,31 @@ class Runtime:
             source = self.source
             if self.preset == "sleep" and self.config["sleep_room"] and not away:
                 source = self.config["sleep_room"]
+            scheduled=self.plan_schedules(now,valid,scores,away)
+            scheduled_rooms=[]
+            if scheduled:
+                if all(p["source"] not in ("Auto","Average") for p in scheduled):
+                    scheduled_rooms=[p["source"] for p in scheduled if p["source"] in valid]
+                    for plan in scheduled:
+                        self.room_data[plan["source"]]["target"]=plan["target"]
+                        self.room_data[plan["source"]]["schedule"]=plan
+                else:
+                    plan=scheduled[0]
+                    source=plan["source"]
+                    for rid in self.room_data:
+                        if source in ("Auto","Average") or source==rid:
+                            self.room_data[rid]["target"]=plan["target"]
+                            self.room_data[rid]["schedule"]=plan
             selected = weights(scores, valid, average=away or self.preset == "boost",
                                selected="Average" if away or self.preset == "boost" else source)
-            morning_rooms = [rid for rid in valid if self.room_data[rid]["morning"]["active"]]
-            if morning_rooms and not away:
-                # Each scheduled room has standing priority, independent of nighttime occupancy.
-                selected = {rid: 1/len(morning_rooms) for rid in morning_rooms}
-            average_control = not morning_rooms and (away or self.preset == "boost" or source == "Average" or
+            if scheduled and all(p["source"] not in ("Auto","Average") for p in scheduled):
+                selected = {rid: 1/len(scheduled_rooms) for rid in scheduled_rooms}
+            average_control = not scheduled_rooms and (away or self.preset == "boost" or source == "Average" or
                               source == "Auto" and sum(scores.get(rid,0) for rid in valid) < 0.05)
             self.current_temperature = sum(self.room_data[rid]["temperature"] * w for rid,w in selected.items()) if selected else None
             self.target_temperature = sum(self.room_data[rid]["target"] * w for rid,w in selected.items()) if selected else None
-            reason = "Away average" if away else "Morning preheat" if morning_rooms else "Room control"
+            reason = "Away average" if away else ("Schedule preheat" if any(p["phase"]=="preheat" for p in scheduled)
+                else "Scheduled comfort") if scheduled else "Room control"
             forced = self.mode == "off" or not selected or high_temperature or self.actual is None
             if self.mode == "off": reason = "Off"
             elif high_temperature: reason = "Safety temperature limit"
@@ -291,8 +355,8 @@ class Runtime:
                 "tuning_applied":bool(average_model and self.applied.get(AVERAGE) == average_model.fitted_at),
                 "complete_membership":len(valid) == len(self.rooms)}
             # A deadline is a max-demand objective. It is still bounded by safety/cycling.
-            if morning_rooms and not forced:
-                self.duty = max(duties.get(rid, 0) for rid in morning_rooms)
+            if scheduled_rooms and not forced:
+                self.duty = max(duties.get(rid, 0) for rid in scheduled_rooms)
             self.proposed = self.relay.decide(now, self.duty, bool(self.actual), force_off=forced)
             self.reason = reason
             if not self.config["shadow"]:

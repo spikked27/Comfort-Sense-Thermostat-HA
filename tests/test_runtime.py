@@ -49,10 +49,11 @@ runtime=sys.modules["comfort_sense_test.runtime"]
 
 
 class Services:
-    def __init__(self):self.calls=[];self.fail=False
+    def __init__(self):self.calls=[];self.fail=False;self.schedule_response={}
     async def async_call(self,domain,service,data,**kwargs):
         self.calls.append((domain,service,data))
         if self.fail: raise HomeAssistantError("offline")
+        if domain=="schedule":return self.schedule_response
 
 
 class Hass:
@@ -192,9 +193,11 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
     async def test_morning_overrides_sleep_occupancy_but_not_away(self):
         self.r.mode="heat"
         self.r.preset="sleep"
-        self.r.rooms[0].update(morning_enabled=True,morning_time="12:30")
+        self.r.config["schedules"]=[{"id":"morning","name":"Morning","entity_id":"",
+            "weekly":{"sunday":[{"from":"12:30","to":"13:30"}]},"source":"a","target":22,
+            "data_temperature_unit":"°C","priority":0,"preheat":True}]
         await self.r.tick()
-        self.assertEqual(self.r.reason,"Morning preheat")
+        self.assertEqual(self.r.reason,"Schedule preheat")
         self.assertEqual(self.r.target_temperature,22)
         await self.r.change(preset="away")
         self.assertEqual(self.r.target_temperature,18)
@@ -287,6 +290,40 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
     async def test_invalid_cycle_config_rejected(self):
         self.entry.options={"pwm_seconds":120}
         with self.assertRaises(ValueError):runtime.Runtime(self.hass,self.entry)
+
+    async def test_native_schedule_reader_does_not_send_switch_commands_in_shadow(self):
+        self.r.mode="heat"
+        self.set("schedule.morning","off")
+        self.r.config["schedules"]=[{"id":"native","name":"Morning","entity_id":"schedule.morning",
+            "source":"Average","target":22,"priority":0,"preheat":True,"data_temperature_unit":"°F"}]
+        self.hass.services.schedule_response={"schedule.morning":{"sunday":[{"from":"12:30","to":"13:30",
+            "data":{"temperature":72,"source":"A"}}]}}
+        await self.r.tick()
+        self.assertEqual(self.r.reason,"Schedule preheat")
+        self.assertAlmostEqual(self.r.target_temperature,(72-32)/1.8)
+        self.assertTrue(self.hass.services.calls)
+        self.assertTrue(all(c[0]=="schedule" for c in self.hass.services.calls))
+
+    async def test_unavailable_native_helper_does_not_run_cached_schedule(self):
+        self.r.mode="heat"
+        self.set("schedule.morning","unavailable")
+        self.r.config["schedules"]=[{"id":"native","name":"Morning","entity_id":"schedule.morning",
+            "source":"Average","target":25,"priority":0,"preheat":True,"data_temperature_unit":"°F"}]
+        self.r.schedule_cache["schedule.morning"]={"sunday":[{"from":"11:00","to":"14:00"}]}
+        await self.r.tick()
+        self.assertEqual(self.r.reason,"Room control")
+        self.assertEqual(self.r.target_temperature,21)
+        self.assertIn("unavailable",self.r.schedule_status["native"])
+
+    async def test_observations_restore_before_a_model_exists(self):
+        await self.r.tick()
+        data=self.r.saved()
+        self.assertFalse(data["models"])
+        new=runtime.Runtime(self.hass,self.entry)
+        new.store.data=data
+        await new.start()
+        self.assertGreaterEqual(len(new.samples["a"]),2)
+        await new.stop()
 
 
 if __name__=="__main__":unittest.main()

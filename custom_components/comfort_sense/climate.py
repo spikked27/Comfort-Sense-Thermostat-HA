@@ -58,6 +58,8 @@ class ComfortSenseClimate(ComfortSenseEntity, ClimateEntity):
         return {"shadow_mode": r.config["shadow"], "control_reason": r.reason,
                 "requested_duty_percent": round(r.duty*100, 1), "proposed_relay_on": r.proposed,
                 "observed_relay_on": r.actual, "rooms": r.room_data,
+                "schedules": r.schedule_plans,"schedule_status":r.schedule_status,
+                "controller_temperature_unit":"°C",
                 "boost_until": dt_util.utc_from_timestamp(r.boost_until).isoformat() if r.preset == "boost" else None}
 
     async def async_set_hvac_mode(self, hvac_mode):

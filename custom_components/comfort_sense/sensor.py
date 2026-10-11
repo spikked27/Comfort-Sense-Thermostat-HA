@@ -18,7 +18,8 @@ class Status(ComfortSenseEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self):
-        return {"shadow": self.runtime.config["shadow"], "learning": self.runtime.learning_status}
+        return {"shadow": self.runtime.config["shadow"], "learning": self.runtime.learning_status,
+                "schedules":self.runtime.schedule_status}
 
 
 class Duty(ComfortSenseEntity, SensorEntity):

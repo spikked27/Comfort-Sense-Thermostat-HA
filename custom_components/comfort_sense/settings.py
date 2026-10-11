@@ -1,10 +1,11 @@
 """Validate shared settings for setup, options and stored entry data."""
 import math
 from .const import DEFAULTS
+from .scheduling import migrate_config
 
 
 def validate(config):
-    config = {**DEFAULTS, **config}
+    config = {**DEFAULTS, **migrate_config(config)}
     if not str(config.get("heater", "")).startswith("switch."):
         raise ValueError("A switch heater is required")
     for key, low, high in [
@@ -43,16 +44,22 @@ def validate(config):
         names.add(room["name"])
         if not room.get("temperature_sensors"):
             raise ValueError("Every room needs a temperature sensor")
-        for key in ("target", "morning_target"):
+        for key in ("target",):
             if not math.isfinite(float(room[key])) or not 5 <= room[key] < config["max_temperature"]:
                 raise ValueError("Room targets must be below the safety limit")
-        if not 1 <= room["morning_duration"] <= 240:
-            raise ValueError("Invalid morning duration")
-        hour, minute = map(int, room["morning_time"].split(":"))
-        if not (0 <= hour <= 23 and 0 <= minute <= 59):
-            raise ValueError("Invalid morning time")
-        if any(day not in range(7) for day in room["morning_days"]):
-            raise ValueError("Invalid weekday")
+    schedule_ids=set()
+    for binding in config["schedules"]:
+        if binding["id"] in schedule_ids or not binding["name"].strip():
+            raise ValueError("Invalid schedule name or ID")
+        schedule_ids.add(binding["id"])
+        if not binding.get("weekly") and not str(binding.get("entity_id","")).startswith("schedule."):
+            raise ValueError("Select a native Schedule helper")
+        if binding["source"] not in {"Auto","Average",*ids}:
+            raise ValueError("Schedule refers to a missing room")
+        if not math.isfinite(float(binding["target"])) or not 5<=binding["target"]<config["max_temperature"]:
+            raise ValueError("Invalid schedule target")
+        if binding["data_temperature_unit"] not in ("°C","°F") or not 0<=binding["priority"]<=100:
+            raise ValueError("Invalid schedule settings")
     if config["sleep_room"] and config["sleep_room"] not in ids:
         raise ValueError("Sleep room no longer exists")
     if max(config[k] for k in ("away_temperature", "boost_temperature", "sleep_temperature")) >= config["max_temperature"]:

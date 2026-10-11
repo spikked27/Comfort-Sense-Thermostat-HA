@@ -3,8 +3,8 @@
   "config": {
     "step": {
       "system": {
-        "title": "Heating system and Average PID",
-        "description": "Shadow mode never commands the relay. All setup temperatures are Celsius. Average has its own PID. Automatic tuning uses validated ordinary heating observations and your manual gains as fallback.",
+        "title": "Equipment and Average PID",
+        "description": "Temperature fields use {temperature_unit}, following Home Assistant. Shadow mode observes without commanding heat. Schedules are configured separately.",
         "data": {
           "name": "Name",
           "heater": "Heating relay switch",
@@ -15,10 +15,10 @@
           "average_kp": "Average manual Kp (duty/°C)",
           "average_ki": "Average manual Ki (duty/°C/s)",
           "average_kd": "Average manual Kd (duty·s/°C)",
-          "away_temperature": "Away target (°C)",
-          "boost_temperature": "Boost target (°C)",
-          "sleep_temperature": "Sleep target (°C)",
-          "max_temperature": "Maximum room safety temperature (°C)",
+          "away_temperature": "Away target",
+          "boost_temperature": "Boost target",
+          "sleep_temperature": "Sleep target",
+          "max_temperature": "Maximum room safety temperature",
           "boost_minutes": "Boost duration (minutes)",
           "away_delay_minutes": "Confirmed absence delay (minutes)",
           "occupancy_rise_minutes": "Occupancy buildup time (minutes)",
@@ -27,54 +27,88 @@
           "min_on_seconds": "Minimum relay on time (seconds)",
           "min_off_seconds": "Minimum relay off time (seconds)",
           "pwm_seconds": "Slow PWM period (seconds)",
-          "max_preheat_minutes": "Maximum morning preheat (minutes)",
-          "fallback_heat_rate": "Fallback warm-up estimate (°C/hour)",
           "sleep_room": "Sleep temperature source"
         }
       },
       "manage": {
-        "title": "Rooms and settings",
-        "description": "Add rooms, edit their sensors and PID, or review the configuration.",
+        "title": "Rooms",
+        "description": "Add or edit room sensors and PID settings. Weekly schedules have their own configuration section.",
         "data": {
           "action": "Action"
         }
       },
       "room": {
-        "title": "Room sensors, PID and morning comfort",
-        "description": "Select physical temperature sensors. Choose manual gains or automatic tuning independently for this room. Morning time means the desired arrival time, not the time to switch the heater on.",
+        "title": "Room sensors and PID",
+        "description": "Temperatures use {temperature_unit}. Select this room’s sensors, comfort target and tuning mode. Configure weekly timing separately under Scheduling.",
         "data": {
           "name": "Room name",
           "temperature_sensors": "Temperature sensors",
           "occupancy_sensors": "Occupancy sensors (any On)",
-          "target": "Comfort target (°C)",
+          "target": "Comfort target",
           "tuning_mode": "Room PID tuning mode",
           "kp": "Manual Kp (duty/°C)",
           "ki": "Manual Ki (duty/°C/s)",
-          "kd": "Manual Kd (duty·s/°C)",
-          "morning_enabled": "Enable reach-by morning schedule",
-          "morning_time": "Comfort arrival time (HH:MM, local)",
-          "morning_target": "Morning target (°C)",
-          "morning_duration": "Comfort hold after arrival (minutes)",
-          "morning_days": "Morning weekdays"
+          "kd": "Manual Kd (duty·s/°C)"
         }
       },
       "review": {
         "title": "Review thermostat configuration",
-        "description": "{summary}"
+        "description": "{summary}",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "init": {
+        "title": "Configure Comfort Sense Thermostat",
+        "menu_options": {
+          "system": "Equipment and Average PID",
+          "manage": "Rooms",
+          "schedules": "Scheduling",
+          "review": "Review and save"
+        }
+      },
+      "schedules": {
+        "title": "Scheduling",
+        "description": "Create weekly time blocks in Settings → Devices & services → Helpers → Schedule, then connect that helper here. Times remain editable in HA’s native weekly editor.",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "schedule": {
+        "title": "Connect a weekly Schedule helper",
+        "description": "Temperatures use {temperature_unit}. A block start is the desired comfort arrival time when preheat is enabled. Optional block data can override temperature and source.",
+        "data": {
+          "name": "Schedule name",
+          "entity_id": "Home Assistant Schedule helper",
+          "source": "Temperature source",
+          "target": "Scheduled target",
+          "preheat": "Warm up before a block starts",
+          "priority": "Priority (higher wins)",
+          "data_temperature_unit": "Unit for optional temperature values in schedule block data"
+        }
+      },
+      "schedule_settings": {
+        "title": "Warm-up planning",
+        "description": "Temperature rates use {temperature_unit}/hour.",
+        "data": {
+          "max_preheat_minutes": "Maximum preheat (minutes)",
+          "fallback_heat_rate": "Fallback warm-up rate"
+        }
       }
     },
     "error": {
       "heater_already_configured": "This relay already belongs to another Comfort Sense Thermostat entry.",
       "heater_missing": "The selected heating switch does not exist.",
-      "invalid_room": "Check the unique room name, temperature units, PID gains and morning schedule. Targets must be below the safety limit.",
-      "invalid_config": "Check system settings. PWM must cover minimum on and off times; targets must be below the safety limit."
+      "invalid_room": "Check room name, temperature sensors, PID gains and target. The target must be below the safety limit.",
+      "invalid_config": "Check equipment, rooms and schedule bindings. Removed rooms must also be removed from schedule bindings; targets must be below the safety limit.",
+      "invalid_schedule": "Choose an existing Schedule helper, a valid source and a target below the safety limit."
     }
   },
   "options": {
     "step": {
       "system": {
-        "title": "Heating system and Average PID",
-        "description": "Shadow mode never commands the relay. All setup temperatures are Celsius. Average has its own PID. Automatic tuning uses validated ordinary heating observations and your manual gains as fallback.",
+        "title": "Equipment and Average PID",
+        "description": "Temperature fields use {temperature_unit}, following Home Assistant. Shadow mode observes without commanding heat. Schedules are configured separately.",
         "data": {
           "name": "Name",
           "heater": "Heating relay switch",
@@ -85,10 +119,10 @@
           "average_kp": "Average manual Kp (duty/°C)",
           "average_ki": "Average manual Ki (duty/°C/s)",
           "average_kd": "Average manual Kd (duty·s/°C)",
-          "away_temperature": "Away target (°C)",
-          "boost_temperature": "Boost target (°C)",
-          "sleep_temperature": "Sleep target (°C)",
-          "max_temperature": "Maximum room safety temperature (°C)",
+          "away_temperature": "Away target",
+          "boost_temperature": "Boost target",
+          "sleep_temperature": "Sleep target",
+          "max_temperature": "Maximum room safety temperature",
           "boost_minutes": "Boost duration (minutes)",
           "away_delay_minutes": "Confirmed absence delay (minutes)",
           "occupancy_rise_minutes": "Occupancy buildup time (minutes)",
@@ -97,47 +131,81 @@
           "min_on_seconds": "Minimum relay on time (seconds)",
           "min_off_seconds": "Minimum relay off time (seconds)",
           "pwm_seconds": "Slow PWM period (seconds)",
-          "max_preheat_minutes": "Maximum morning preheat (minutes)",
-          "fallback_heat_rate": "Fallback warm-up estimate (°C/hour)",
           "sleep_room": "Sleep temperature source"
         }
       },
       "manage": {
-        "title": "Rooms and settings",
-        "description": "Add rooms, edit their sensors and PID, or review the configuration.",
+        "title": "Rooms",
+        "description": "Add or edit room sensors and PID settings. Weekly schedules have their own configuration section.",
         "data": {
           "action": "Action"
         }
       },
       "room": {
-        "title": "Room sensors, PID and morning comfort",
-        "description": "Select physical temperature sensors. Choose manual gains or automatic tuning independently for this room. Morning time means the desired arrival time, not the time to switch the heater on.",
+        "title": "Room sensors and PID",
+        "description": "Temperatures use {temperature_unit}. Select this room’s sensors, comfort target and tuning mode. Configure weekly timing separately under Scheduling.",
         "data": {
           "name": "Room name",
           "temperature_sensors": "Temperature sensors",
           "occupancy_sensors": "Occupancy sensors (any On)",
-          "target": "Comfort target (°C)",
+          "target": "Comfort target",
           "tuning_mode": "Room PID tuning mode",
           "kp": "Manual Kp (duty/°C)",
           "ki": "Manual Ki (duty/°C/s)",
-          "kd": "Manual Kd (duty·s/°C)",
-          "morning_enabled": "Enable reach-by morning schedule",
-          "morning_time": "Comfort arrival time (HH:MM, local)",
-          "morning_target": "Morning target (°C)",
-          "morning_duration": "Comfort hold after arrival (minutes)",
-          "morning_days": "Morning weekdays"
+          "kd": "Manual Kd (duty·s/°C)"
         }
       },
       "review": {
         "title": "Review thermostat configuration",
-        "description": "{summary}"
+        "description": "{summary}",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "init": {
+        "title": "Configure Comfort Sense Thermostat",
+        "menu_options": {
+          "system": "Equipment and Average PID",
+          "manage": "Rooms",
+          "schedules": "Scheduling",
+          "review": "Review and save"
+        }
+      },
+      "schedules": {
+        "title": "Scheduling",
+        "description": "Create weekly time blocks in Settings → Devices & services → Helpers → Schedule, then connect that helper here. Times remain editable in HA’s native weekly editor.",
+        "data": {
+          "action": "Action"
+        }
+      },
+      "schedule": {
+        "title": "Connect a weekly Schedule helper",
+        "description": "Temperatures use {temperature_unit}. A block start is the desired comfort arrival time when preheat is enabled. Optional block data can override temperature and source.",
+        "data": {
+          "name": "Schedule name",
+          "entity_id": "Home Assistant Schedule helper",
+          "source": "Temperature source",
+          "target": "Scheduled target",
+          "preheat": "Warm up before a block starts",
+          "priority": "Priority (higher wins)",
+          "data_temperature_unit": "Unit for optional temperature values in schedule block data"
+        }
+      },
+      "schedule_settings": {
+        "title": "Warm-up planning",
+        "description": "Temperature rates use {temperature_unit}/hour.",
+        "data": {
+          "max_preheat_minutes": "Maximum preheat (minutes)",
+          "fallback_heat_rate": "Fallback warm-up rate"
+        }
       }
     },
     "error": {
       "heater_already_configured": "This relay already belongs to another Comfort Sense Thermostat entry.",
       "heater_missing": "The selected heating switch does not exist.",
-      "invalid_room": "Check the unique room name, temperature units, PID gains and morning schedule. Targets must be below the safety limit.",
-      "invalid_config": "Check system settings. PWM must cover minimum on and off times; targets must be below the safety limit."
+      "invalid_room": "Check room name, temperature sensors, PID gains and target. The target must be below the safety limit.",
+      "invalid_config": "Check equipment, rooms and schedule bindings. Removed rooms must also be removed from schedule bindings; targets must be below the safety limit.",
+      "invalid_schedule": "Choose an existing Schedule helper, a valid source and a target below the safety limit."
     }
   }
 }

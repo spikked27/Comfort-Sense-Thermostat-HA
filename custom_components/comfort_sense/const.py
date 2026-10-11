@@ -13,4 +13,5 @@ DEFAULTS = {
     "fallback_heat_rate": 0.5,
     "average_tuning_mode": "manual", "average_kp": 0.2,
     "average_ki": 0.000035, "average_kd": 0.0,
+    "schedules": [],
 }
