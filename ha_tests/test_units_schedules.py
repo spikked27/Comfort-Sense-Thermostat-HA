@@ -2,6 +2,7 @@
 import pytest
 from homeassistant.config_entries import SOURCE_USER
 from homeassistant.loader import async_get_integration_descriptions
+from homeassistant.helpers.entity_component import DATA_INSTANCES
 from homeassistant.setup import async_setup_component
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 from pytest_homeassistant_custom_component.common import MockConfigEntry, async_fire_time_changed
@@ -102,3 +103,33 @@ async def test_native_schedule_preheats_and_restores_after_block(hass,freezer):
     await runtime.tick()
     assert runtime.room_data["study"]["target"]==19
     assert runtime.reason=="Room control"
+    # YAML Schedule helpers own a future timer and are not config entries, so
+    # remove this test-only helper explicitly before HA's timer-leak audit.
+    await hass.data[DATA_INSTANCES]["schedule"].async_remove_entity("schedule.morning")
+    await hass.async_block_till_done()
+
+
+async def test_scheduling_is_a_separate_unit_aware_options_section(hass):
+    hass.config.units=US_CUSTOMARY_SYSTEM
+    hass.states.async_set("switch.heat","off")
+    hass.states.async_set("sensor.study","68",{"unit_of_measurement":"°F"})
+    hass.states.async_set("schedule.weekdays","off")
+    entry=MockConfigEntry(domain=DOMAIN,version=2,data={"heater":"switch.heat","rooms":[room()],"shadow":True})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    flow=await hass.config_entries.options.async_init(entry.entry_id)
+    assert "schedules" in flow["menu_options"]
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{"next_step_id":"schedules"})
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{"action":"settings"})
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{"max_preheat_minutes":240,"fallback_heat_rate":0.9})
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{"action":"add"})
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{
+        "name":"Weekdays","entity_id":"schedule.weekdays","source":"Average","target":70,
+        "preheat":True,"priority":1,"data_temperature_unit":"°F"})
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{"action":"finish"})
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{})
+    assert flow["type"]=="create_entry"
+    assert entry.options["schedules"][0]["target"]==pytest.approx((70-32)/1.8)
+    assert entry.options["fallback_heat_rate"]==pytest.approx(0.5)
+    assert not any(key.startswith("morning_") for key in entry.options["rooms"][0])
+    await hass.async_block_till_done()

@@ -41,9 +41,9 @@ subfolder so the logo and icon are installed too.
 
 ## 2. Create the thermostat
 
-Open **Settings → Devices & services → Helpers → Create helper**, then select
-**Comfort Sense Thermostat**. It appears in Helpers because it combines entities
-already present in Home Assistant.
+Open **Settings → Devices & services → Integrations → Add integration**, then select
+**Comfort Sense Thermostat**. Existing entries created by 0.1 migrate automatically
+and appear in the Integrations view after updating and restarting; do not recreate them.
 
 Choose a name and the heating switch. Select your outdoor temperature and
 home-presence sources. Keep **Shadow mode** enabled during the first evaluation;
@@ -53,7 +53,9 @@ System settings also contain Away, Sleep and Boost targets; relay timing; and th
 dedicated **Average PID** mode and manual gains. Use timing suitable for your
 equipment. Defaults are twenty-minute PWM and five-minute minimum On/Off times.
 
-All setup temperature fields are **Celsius**:
+Setup fields and room target controls follow your HA temperature-unit preference.
+If HA uses Fahrenheit, enter Fahrenheit values directly. Internally stored targets
+remain unchanged when upgrading. Useful equivalents are:
 
 | Fahrenheit | Celsius |
 |---|---|
@@ -77,9 +79,9 @@ room tuning**. Every room and Average choose independently. Automatic mode uses
 your manual gains until reliable learning data is available. Supplied gains are
 starting points, rather than a universal heating-system tune.
 
-Optionally enable morning comfort: choose weekdays, arrival time, target, and how
-long to maintain it after arrival. Repeat for your other rooms, then choose
-**Review and finish**.
+Repeat for your other rooms, then choose **Review and save**. Weekly timing is
+configured separately with native Schedule helpers under the integration's
+**Configure → Scheduling** section. See [weekly scheduling](SCHEDULING.md).
 
 ## 4. Evaluate in Shadow mode
 
@@ -104,7 +106,7 @@ After reviewing Shadow behavior, disable the previous thermostat and any scripts
 or automations controlling the same relay. Use the [migration guide](MIGRATION.md)
 when replacing Smart Thermostat.
 
-Open this helper's options, choose **Heating system settings**, turn Shadow off,
+Open the integration's **Configure** menu, choose **Equipment and Average PID**, turn Shadow off,
 and finish the review. Select **Heat** after the reload. Comfort Sense now commands
 the switch while respecting the configured cycle limits.
 
@@ -115,7 +117,7 @@ the switch while respecting the configured cycle limits.
 | Symptom | Check |
 |---|---|
 | HACS button cannot open HA | Set your instance URL in My Home Assistant, or use the manual HACS steps. |
-| Cannot find the helper | Confirm `/config/custom_components/comfort_sense`, restart HA, and search under **Helpers**. |
+| Cannot find the integration | Confirm `/config/custom_components/comfort_sense`, restart HA, and search under **Integrations**. Versions 0.1 appeared only under Helpers; update first. |
 | No heat after installation or restart | Select **Heat**. Confirm Shadow is off if you intend active control. |
 | A room has no temperature | Check units, availability, report age and `excluded_sensors`. |
 | No learned model | Check outdoor and relay availability; read that controller's learning status. |

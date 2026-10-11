@@ -50,7 +50,7 @@ heating zones. Operation and learning stay local to Home Assistant.
 1. Click the button above and open your Home Assistant instance.
 2. Add the repository when prompted, then **download Comfort Sense Thermostat** in HACS.
 3. **Restart Home Assistant.**
-4. Go to **Settings → Devices & services → Helpers → Create helper** and choose
+4. Go to **Settings → Devices & services → Integrations → Add integration** and choose
    **Comfort Sense Thermostat**.
 5. Choose your heating switch, outdoor temperature sensor, and home-presence source.
    Keep **Shadow mode enabled**, then add your rooms and their sensors.
@@ -72,8 +72,8 @@ it is not yet included in the default HACS catalog.
 > **Experimental alpha — start in Shadow mode.** Active control needs commissioning
 > on your heating system. HA restarts and options reloads leave the thermostat **Off**
 > in this alpha; select Heat to resume. Disable the previous controller before
-> turning Shadow off. Setup temperatures use **Celsius**, even when the climate card
-> displays Fahrenheit.
+> turning Shadow off. Setup fields, room targets and the climate card use your
+> Home Assistant **Celsius or Fahrenheit** preference.
 
 ## Everyday use
 
@@ -82,6 +82,7 @@ it is not yet included in the default HACS catalog.
 | **Thermostat card** | Heat/Off, the comfort target, and Comfort/Away/Sleep/Boost presets. |
 | **Temperature source** | Auto, Average, or a particular room. |
 | **Room comfort target** | Adjusting one room without changing the others. |
+| **Native Schedule helpers** | Editing weekly time blocks separately from equipment and room settings. |
 | **Room and Average temperature sensors** | Readings, learning status and excluded sensors. |
 | **Heat demand and Control status** | Understanding heat requests and Shadow behavior. |
 
@@ -89,10 +90,13 @@ The main thermostat dial changes every room's **comfort** target. Individual roo
 controls refine those targets. Away uses its lower configured target and the dedicated
 Average controller. Boost expires automatically after its chosen duration.
 
-For morning warm-up, choose the room, weekdays, target, and time you want it ready.
-For example, **“Living room, 21°C, weekdays at 07:00”** means *aim to be comfortable
-at 07:00*, rather than *switch the heater on at 07:00*. Lead times remain estimates;
-changing weather and heating capacity can affect the result.
+For morning warm-up, create a **Schedule helper** using HA's weekly time-block
+editor, then connect it under **Comfort Sense → Configure → Scheduling**. Choose
+a room or Average, a target and whether to preheat. A weekday block from 07:00 to
+09:00 means *aim to be comfortable at 07:00 and maintain it until 09:00*. Lead times
+remain estimates; changing weather and heating capacity can affect the result.
+
+[Weekly schedules and preheating →](docs/SCHEDULING.md)
 
 [Presets, schedules, tuning choices and diagnostics explained →](docs/USER_GUIDE.md)
 
@@ -102,7 +106,8 @@ changing weather and heating capacity can affect the result.
 - [User guide](docs/USER_GUIDE.md) — controls, schedules, tuning and common questions.
 - [Migration](docs/MIGRATION.md) — replace Smart Thermostat and room templates.
 - [Control design](docs/CONTROL.md) — PID units, thermal models and learning quality gates.
-- [Verification](docs/TESTING.md) — 39 control/runtime tests and six real HA integration tests.
+- [Weekly schedules](docs/SCHEDULING.md) — the native HA editor, bindings and preheating.
+- [Verification](docs/TESTING.md) — control/runtime and real Home Assistant integration tests.
 - [Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Security and privacy](SECURITY.md).
 
 For help, [open an issue](https://github.com/spikked27/Comfort-Sense-Thermostat-HA/issues/new/choose)

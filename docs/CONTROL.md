@@ -108,8 +108,13 @@ available, a configurable 0.5°C/hour default and thirty-minute allowance estima
 lead time. Maximum preheat is four hours by default. This bounded fallback is a
 planning estimate, not a causal tune derived from historical temperature rises.
 
-The schedule evaluates yesterday/today/tomorrow in the HA timezone, so preheating
-can start before midnight and a morning hold can span a date boundary. Spring DST
+Weekly time blocks live in native HA Schedule helpers. Equipment, room and
+scheduling settings are separate. Bindings choose a target, source and priority;
+optional block data can override target/source. The read-only schedule.get_schedule
+action supplies future blocks so preheating can begin before a helper turns On.
+
+The schedule evaluates weekly blocks in the HA timezone, so preheating
+can start before midnight and connected overnight blocks can span a date boundary. Spring DST
 nonexistent wall times roll forward by the timezone round trip; repeated autumn
 times use the first occurrence. The active room controllers use the largest scheduled
 demand when several morning targets compete for a shared relay. All safety and

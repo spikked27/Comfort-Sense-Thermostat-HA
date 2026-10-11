@@ -11,7 +11,7 @@ body:
     attributes:
       label: Versions
       description: Comfort Sense Thermostat and Home Assistant versions.
-      placeholder: "Comfort Sense 0.1.0a1; Home Assistant 2026.10.1"
+      placeholder: "Comfort Sense 0.2.0a1; Home Assistant 2026.10.1"
     validations:
       required: true
   - type: dropdown

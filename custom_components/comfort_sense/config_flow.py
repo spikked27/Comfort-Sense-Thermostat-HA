@@ -255,7 +255,7 @@ class ComfortSenseConfigFlow(Editor,config_entries.ConfigFlow,domain=DOMAIN):
 class ComfortSenseOptionsFlow(Editor,config_entries.OptionsFlow):
     async def async_step_init(self,user_input=None):
         if not hasattr(self,"config"):
-            self.config=migrate_config({**self.config_entry.data,**self.config_entry.options})
+            self.config={**deepcopy(DEFAULTS),**migrate_config({**self.config_entry.data,**self.config_entry.options})}
         return self.async_show_menu(step_id="init",menu_options=["system","manage","schedules","review"])
 
     def finish(self,checked):return self.async_create_entry(title="",data=checked)

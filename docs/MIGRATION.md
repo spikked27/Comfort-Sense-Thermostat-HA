@@ -15,11 +15,17 @@ automation, script, or scheduler action that writes its settings or the heating
 relay. Search for the old climate entity and relay in YAML, scripts, helpers and
 UI automations. Preserve an export of those definitions to support rollback.
 
-Move morning schedules to each room's built-in target time. Replace old
+Create native Schedule helpers and connect them under the integration's separate
+Scheduling section. Block starts are desired arrival times when preheat is enabled. Replace old
 `climate.set_preset_mode` and temperature actions with the new climate entity.
 Comfort Sense Thermostat has Comfort/Away/Sleep/Boost; map other legacy presets explicitly.
 Historical occupancy helpers and room-switching/filter templates can be removed
 once no remaining automations reference them.
+
+Upgrades from Comfort Sense 0.1 preserve the existing entry and entity IDs. Old
+enabled room morning settings become separate legacy schedule bindings; connect
+native helpers to edit their times in HA's weekly grid. Existing stored Celsius
+targets are preserved while forms and number controls use your HA unit preference.
 
 After removing competing control, turn Shadow off in Comfort Sense Thermostat options and select
 Heat. The first relay turn-on respects a full minimum-off period after startup.

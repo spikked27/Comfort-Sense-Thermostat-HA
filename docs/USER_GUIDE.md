@@ -17,7 +17,7 @@ excluded. All rooms still receive heat together because there is one shared rela
 
 The main dial updates every room's **comfort target** and returns to Comfort. Use
 individual room target entities to change only one room. Setup and number fields
-use Celsius; climate-card display conversion follows HA settings.
+follow HA's Celsius or Fahrenheit preference, as does the climate card.
 
 | Preset | What happens |
 |---|---|
@@ -30,10 +30,12 @@ Unknown home presence does not mean Away. Confirmed automatic Away takes priorit
 over Boost and morning schedules. Changing presets does not turn an Off thermostat
 on; select Heat when required.
 
-## Morning comfort
+## Weekly schedules and morning comfort
 
-In a room's options, choose weekdays, the desired **arrival time**, target, and
-hold duration. For example: Monday–Friday, 07:00, 21°C, sixty-minute hold.
+Create a native **Schedule helper** in HA and draw weekly blocks in its time-grid
+editor. Connect it through **Comfort Sense → Configure → Scheduling**, choosing a
+room, Auto or Average, a scheduled target, and whether to warm up before the block.
+Room and equipment configuration contain no scheduling fields.
 
 Comfort Sense estimates how early to warm that room. A validated model uses heating
 response, outdoor heat loss and delivery delay. Before learning is ready, it uses
@@ -43,7 +45,7 @@ Morning rooms have priority while their plans are active. Sleep permits morning
 warm-up; Away suppresses it. Manual Boost temporarily overrides the plan. Several
 morning rooms use the largest scheduled demand, within relay and temperature limits.
 
-The room's `morning` diagnostic reports `lead_seconds`, `deadline`, `reachable` and
+The room's `schedule` diagnostic reports `lead_seconds`, `deadline`, `reachable` and
 whether the estimate is `learned` or `fallback`. False reachability means the model
 or allowed lead cannot support the requested arrival. True is still an estimate,
 not a guarantee of hitting the target under every weather condition.
@@ -51,7 +53,7 @@ not a guarantee of hitting the target under every weather condition.
 ## Manual or automatic tuning
 
 Choose independently in each room's settings. Average's gains and mode are in
-**Heating system settings**.
+**Equipment and Average PID**.
 
 | Mode | Behavior |
 |---|---|
@@ -76,7 +78,7 @@ before copying another integration's values or making large adjustments.
 | **Off** | Climate mode is Off. |
 | **Room control** | Normal room or Average control. |
 | **Away average** | Away uses its target and dedicated Average PID. |
-| **Morning preheat** | Room morning plans have priority. |
+| **Schedule preheat / Scheduled comfort** | A connected weekly schedule is warming up or holding a scheduled target. |
 | **No valid temperatures** | All configured readings are missing or invalid. |
 | **Selected room has no valid temperature** | The pinned room lost its input. |
 | **Safety temperature limit** | A valid room sensor reached the configured maximum. |
@@ -104,3 +106,5 @@ reloads. Select Heat to resume.
 
 **Where is learning data?** A bounded buffer is kept in HA `.storage`. It can reveal
 household heating patterns; do not attach it to a public issue.
+
+[Native weekly scheduling, block overrides and priority →](SCHEDULING.md)

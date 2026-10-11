@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0a1
+
+- Show Comfort Sense in Integrations instead of classifying it as a Helper.
+- Use HA's Celsius/Fahrenheit preference for setup targets and room number controls.
+- Replace room-level morning fields with separate native Schedule-helper bindings.
+- Read future weekly blocks for preheat, with per-block source/target overrides and priority.
+- Migrate existing entries and enabled morning plans without changing room IDs or stored targets.
+- Preserve learning observations across restart before a thermal model has been accepted.
+- Add migration, Fahrenheit read/write, weekly schedule and HA integration-list tests.
+
 ## 0.1.0a1
 
 Added a generated logo, bundled HA brand icons, a direct HACS installation button,
