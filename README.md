@@ -32,10 +32,10 @@ You can also pin a room or use the whole-home average.
 |---|---|
 | **Room-aware comfort** | One thermostat target follows the most occupied room or equally averages rooms within an adjustable occupancy tolerance. |
 | **A proper Average mode** | An equal-room average has its own PID controller and tuning settings, including in Away mode. |
-| **Your choice of tuning** | Choose manual PID or automatic validated tuning independently for each room and Average. |
+| **Your choice of tuning** | Automatic validated tuning by default; optional manual tuning for each room and Average. |
 | **Learning for slow heat** | Learns from ordinary heating, rather than forcing a rapid on/off autotune experiment. |
 | **Outdoor temperature** | Helps estimate heat loss and how early a room needs to start warming. |
-| **Morning comfort** | Choose a temperature and arrival time; the planner estimates the required warm-up lead. |
+| **Morning comfort** | Use weekly blocks or phone alarms as arrival times; learned models estimate warm-up lead. |
 | **Away, Sleep and Boost** | Use a lower away target, focus on a sleeping room, or apply a temporary boost. |
 | **Try it alongside your thermostat** | Shadow mode calculates demand and learns without commanding your heater. |
 
@@ -93,13 +93,15 @@ a room or Average, a target and whether to preheat. A weekday block from 07:00 t
 09:00 means *aim to be comfortable at 07:00 and maintain it until 09:00*. Lead times
 remain estimates; changing weather and heating capacity can affect the result.
 
-[Weekly schedules and preheating →](docs/SCHEDULING.md)
+Morning comfort can also follow the earliest next alarm from selected phones, with optional person associations. Open **Configure → Scheduling → Morning comfort from phone alarms**. See **Ready by** and **Estimated heating start** on the device page.
+
+[Weekly schedules, phone alarms and preheating →](docs/SCHEDULING.md)
 
 [Presets, schedules, tuning choices and diagnostics explained →](docs/USER_GUIDE.md)
 
 [Dashboard cards for active room, temperatures and occupancy →](docs/DASHBOARD.md)
 
-[Occupancy grouping, live Configuration entities and room buffers →](docs/ROOM_PROTECTION.md)
+[Occupancy grouping, live Configuration entities and room protection →](docs/ROOM_PROTECTION.md)
 
 ## Documentation and support
 

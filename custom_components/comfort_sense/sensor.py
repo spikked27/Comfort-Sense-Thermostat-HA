@@ -1,6 +1,8 @@
 """Control and learning diagnostics, accessible to dashboards and automations."""
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.const import UnitOfTemperature
+from datetime import datetime, timezone
+from .scheduling import choose
 from .const import AVERAGE, DOMAIN
 from .entity import ComfortSenseEntity
 
@@ -8,6 +10,7 @@ from .entity import ComfortSenseEntity
 async def async_setup_entry(hass, entry, async_add_entities):
     runtime = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([Status(runtime), Duty(runtime), ActiveRoom(runtime),
+        ComfortDeadline(runtime), ComfortDeadline(runtime,start=True),
         *[RoomTemperature(runtime,r) for r in runtime.plants], *[RoomOccupancy(runtime,r) for r in runtime.rooms]])
 
 
@@ -47,6 +50,31 @@ class Status(ComfortSenseEntity, SensorEntity):
         return {"shadow": self.runtime.config["shadow"], "learning": self.runtime.learning_status,
                 "schedules":self.runtime.schedule_status,"room_protection":self.runtime.guard_data,
                 "group_control":self.runtime.group_data}
+
+
+class ComfortDeadline(ComfortSenseEntity, SensorEntity):
+    _attr_device_class=SensorDeviceClass.TIMESTAMP
+
+    def __init__(self,runtime,start=False):
+        self.start=start
+        super().__init__(runtime,"heating_start" if start else "ready_by",
+                         "Estimated heating start" if start else "Ready by")
+
+    def plan(self):
+        plans=self.runtime.schedule_plans
+        selected=choose(plans)
+        return min(selected or plans,key=lambda p:p["start"],default=None)
+
+    @property
+    def native_value(self):
+        plan=self.plan()
+        return datetime.fromtimestamp(plan["estimated_start" if self.start else "start"],timezone.utc) if plan else None
+
+    @property
+    def extra_state_attributes(self):
+        plan=self.plan()
+        return {"plan":plan,"thermostat_mode":self.runtime.mode,
+                "morning_status":self.runtime.morning.status,"last_arrival":self.runtime.arrivals.last_arrival}
 
 
 class Duty(ComfortSenseEntity, SensorEntity):

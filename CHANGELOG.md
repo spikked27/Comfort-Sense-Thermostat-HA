@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0a1
+
+- Default new room and Average controllers to automatic validated PID tuning; preserve explicit existing choices.
+- Hide manual PID number entities by default while retaining Advanced editing and service access.
+- Replace separate room warm/cold controls with one overall Room protection buffer.
+- Add earliest-home-phone alarm deadlines, owner associations, cancellation, persisted holds and one morning session per local day.
+- Share native schedule preheating, safety, Away/Boost priority and learned models with morning alarms.
+- Latch preheating through arrival and maintain targets until the hold/block ends.
+- Add Ready by and Estimated heating start sensors and bounded learned arrival corrections.
+
 ## 0.4.0a1
 
 - Auto groups similarly occupied rooms using configurable relative tolerance, default 30%.

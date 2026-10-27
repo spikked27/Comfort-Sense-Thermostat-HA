@@ -18,6 +18,7 @@ from .control import Occupancy, PID, Relay, RoomGuard, GroupForecast, celsius, d
 from .learning import Sample, ThermalModel, identify
 from .settings import validate
 from .scheduling import windows, choose
+from .morning import MorningAlarms, ArrivalLearning
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -64,6 +65,9 @@ class Runtime:
         self.schedule_cache, self.schedule_status = {}, {}
         self.schedule_plans = []
         self.last_schedule_refresh = 0.0
+        self.morning=MorningAlarms()
+        self.arrivals=ArrivalLearning()
+        self.preheat_latches={}
         self.listeners, self.unsubs = [], []
         self.lock = asyncio.Lock()
         self.store = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
@@ -86,6 +90,9 @@ class Runtime:
         if isinstance(previous,(int,float)) and math.isfinite(previous) and 5 <= previous < self.config["max_temperature"]:
             self.comfort_temperature = previous
         now = dt_util.utcnow().timestamp()
+        self.morning.restore(saved.get("morning",{}),now)
+        if saved.get("signatures",{})=={r["id"]:self.signature(r) for r in self.plants}:
+            self.arrivals.restore(saved.get("arrival_corrections",{}))
         for r in self.plants:
             rid = r["id"]
             if saved.get("signatures", {}).get(rid) != self.signature(r):
@@ -108,6 +115,8 @@ class Runtime:
                 self.applied[rid] = self.models[rid].fitted_at
         entities = {self.config["heater"], self.config["outdoor_sensor"], self.config["home_sensor"]}
         entities.update(s["entity_id"] for s in self.config["schedules"])
+        entities.update(self.config["alarm_sensors"])
+        entities.update(self.config["alarm_owners"].values())
         for r in self.rooms:
             entities.update(r["temperature_sensors"] + r["occupancy_sensors"])
         self.unsubs.append(async_track_state_change_event(self.hass, list(entities - {""}), self.changed))
@@ -177,21 +186,32 @@ class Runtime:
                 self.schedule_status[binding["id"]]="Could not read Schedule helper"
 
     def plan_schedules(self,now,valid,scores,away):
+        local=dt_util.as_local(dt_util.utc_from_timestamp(now))
+        alarm=self.morning.window(self.config,self.hass.states,now,local.tzinfo)
+        self.schedule_status["morning_alarm"]=self.morning.status
         if away or self.preset=="boost":
             self.schedule_plans=[]
+            self.preheat_latches.clear()
             return []
-        local=dt_util.as_local(dt_util.utc_from_timestamp(now))
         plans=[]
-        for binding in self.config["schedules"]:
+        bindings=list(self.config["schedules"])
+        if alarm:
+            bindings.append({"id":"morning_alarm","entity_id":"","alarm_window":alarm})
+        for binding in bindings:
+            if "alarm_window" in binding:
+                candidates=[binding["alarm_window"]]
+            else:
+                candidates=None
             weekly=binding.get("weekly") if not binding["entity_id"] else self.schedule_cache.get(binding["entity_id"])
-            if weekly is None:
+            if weekly is None and candidates is None:
                 continue
             if binding["entity_id"]:
                 state=self.hass.states.get(binding["entity_id"])
                 if not state or state.state not in ("on","off"):
                     continue  # never run cached blocks from an unavailable helper
             try:
-                candidates=windows(binding,weekly,local,self.rooms,self.config["max_temperature"])
+                if candidates is None:
+                    candidates=windows(binding,weekly,local,self.rooms,self.config["max_temperature"])
                 candidates=sorted((w for w in candidates if w.end>now),key=lambda w:w.start)
                 upcoming=next((w for w in candidates if w.start>now),None)
                 for window in candidates:
@@ -207,9 +227,20 @@ class Runtime:
                     prediction=(deadline_plan(now,window.start,window.end-window.start,temperature,
                         window.target,model,self.outdoor,self.config["fallback_heat_rate"],self.config["max_preheat_minutes"]*60)
                         if temperature is not None else {"lead_seconds":0,"reachable":False,"confidence":"input unavailable"})
+                    if prediction["confidence"]=="learned":
+                        prediction["lead_seconds"]=max(0,min(self.config["max_preheat_minutes"]*60,
+                            prediction["lead_seconds"]+self.arrivals.corrections.get(window.source,0)))
+                    prediction["estimated_start"]=window.start-prediction["lead_seconds"] if window.preheat else window.start
+                    prediction["required_duty"]=(model.duty_to_target(temperature,window.target,self.outdoor,window.start-now)
+                        if model is not None and self.outdoor is not None and temperature is not None and now<window.start else 0)
                     in_block=window.start<=now<window.end
+                    key=(window.binding_id,window.start)
                     preheating=(not in_block and window.preheat and temperature is not None and
-                                temperature<window.target and window.start-prediction["lead_seconds"]<=now<window.start)
+                                (key in self.preheat_latches or temperature<window.target and window.start-prediction["lead_seconds"]<=now<window.start))
+                    if preheating:
+                        self.preheat_latches.setdefault(key,prediction["estimated_start"])
+                    if key in self.preheat_latches:
+                        prediction["estimated_start"]=self.preheat_latches[key]
                     plans.append({**prediction,"active":in_block or preheating,"phase":"active" if in_block else "preheat",
                         "binding_id":window.binding_id,"entity_id":window.entity_id,"name":window.name,
                         "source":window.source,"target":window.target,"start":window.start,"end":window.end,
@@ -217,6 +248,8 @@ class Runtime:
             except (ValueError,TypeError,KeyError,OverflowError):
                 self.schedule_status[binding["id"]]="Invalid schedule block data"
         self.schedule_plans=plans
+        present={(p["binding_id"],p["start"]) for p in plans}
+        self.preheat_latches={k:v for k,v in self.preheat_latches.items() if k in present}
         return choose(plans)
 
     def model(self, rid, now):
@@ -314,10 +347,11 @@ class Runtime:
             for room in self.rooms:
                 rid=room["id"];row=self.room_data[rid]
                 guard=self.guards[rid]
-                guard.update(row["temperature"],self.target_temperature,room["hot_buffer"],room["cold_buffer"])
+                buffer=self.config["room_buffer"]
+                guard.update(row["temperature"],self.target_temperature,buffer,buffer)
                 self.guard_data[rid]={"name":room["name"],"hot":guard.hot,"cold":guard.cold,
-                    "upper":self.target_temperature+room["hot_buffer"] if room["hot_buffer"] else None,
-                    "lower":self.target_temperature-room["cold_buffer"] if room["cold_buffer"] else None,
+                    "upper":self.target_temperature+buffer if buffer else None,
+                    "lower":self.target_temperature-buffer if buffer else None,
                     "available":row["temperature"] is not None}
             hot_rooms=[row["name"] for row in self.guard_data.values() if row["hot"]]
             forced = self.mode == "off" or not selected or high_temperature or bool(hot_rooms) or self.actual is None
@@ -419,6 +453,24 @@ class Runtime:
                 if not forced:self.duty=group_duty
                 self.group_data.update(duty=group_duty,gains=dict(zip(("kp","ki","kd"),gains)))
             cold_demands={}
+            # A model's full-output arrival estimate needs corresponding heat delivery.
+            # Raise ordinary PID demand only during preheat; coast and room guards win.
+            if not forced:
+                for plan in scheduled:
+                    if plan["phase"]!="preheat" or not plan.get("required_duty"):
+                        continue
+                    if plan["source"] in valid:
+                        measured=self.room_data[plan["source"]]["temperature"]
+                        controller=self.pids[plan["source"]]
+                        model=self.model(plan["source"],now)
+                    else:
+                        measured=self.current_temperature
+                        controller=average_pid if average_control else self.group_pid if group_control else self.pids[next(iter(selected))]
+                        models=[self.model(rid,now) for rid in selected]
+                        model=average_model if average_control else max((m for m in models if m),key=lambda m:m.delay,default=None)
+                    delay=model.delay if model else 600
+                    if measured is not None and measured+max(0,controller.derivative)*delay<plan["target"]:
+                        self.duty=max(self.duty,plan["required_duty"])
             for room in self.rooms:
                 rid=room["id"];row=self.room_data[rid];pid=self.cold_pids[rid]
                 main=self.pids[rid]
@@ -427,8 +479,9 @@ class Runtime:
                 if row["temperature"] is None:
                     pid.previous=None;pid.integral=pid.derivative=0
                     continue
-                floor=self.target_temperature-room["cold_buffer"]
-                duty=pid.update(row["temperature"],floor+min(0.2,room["cold_buffer"]/2),dt,
+                buffer=self.config["room_buffer"]
+                floor=self.target_temperature-buffer
+                duty=pid.update(row["temperature"],floor+min(0.2,buffer/2),dt,
                     active=not forced and self.guards[rid].cold,
                     constrained=self.actual is not None and self.proposed!=self.actual)
                 self.guard_data[rid]["cold_duty"]=duty
@@ -440,6 +493,16 @@ class Runtime:
                     reason="Cold room protection: " + ", ".join(cold_demands)
             self.proposed = self.relay.decide(now, self.duty, bool(self.actual), force_off=forced)
             self.reason = reason
+            # Only learn timing corrections from uninterrupted, real, learned-model control.
+            arrival_eligible=(not forced and not self.config["shadow"] and bool(scheduled)
+                and all(p["confidence"]=="learned" for p in scheduled)
+                and reason in ("Schedule preheat","Scheduled comfort"))
+            rate=self.config["fallback_heat_rate"]
+            if scheduled:
+                source=scheduled[0]["source"]
+                plant_model=self.model(AVERAGE if source=="Average" else source,now)
+                if plant_model and self.outdoor is not None and self.current_temperature is not None:
+                    rate=plant_model.heat_rate-plant_model.loss_rate*(self.current_temperature-self.outdoor)+plant_model.bias
             if not self.config["shadow"]:
                 # Reassert at every tick, both for retry and for ESP relay watchdog keepalive.
                 try:
@@ -448,6 +511,8 @@ class Runtime:
                 except HomeAssistantError as err:
                     self.reason = "Heater command failed"
                     _LOGGER.warning("Heater command failed: %s", err)
+            self.arrivals.observe(self.schedule_plans,scheduled,now,self.current_temperature,
+                                  arrival_eligible and self.reason!="Heater command failed",rate)
             if now-self.last_sample >= 29:
                 self.last_sample = now
                 for plant in self.plants:
@@ -487,6 +552,7 @@ class Runtime:
 
     def saved(self):
         return {"preset": self.preset, "source": self.source, "comfort_temperature":self.comfort_temperature,
+                "morning":self.morning.saved(),"arrival_corrections":self.arrivals.corrections,
                 "models": {k:v.to_dict() for k,v in self.models.items()},
                 "samples": {k:[asdict(s) for s in v] for k,v in self.samples.items()},
                 "signatures": {r["id"]: self.signature(r) for r in self.plants}}

@@ -11,6 +11,7 @@ def validate(config):
     for key, low, high in [
         ("comfort_temperature", 5, 27), ("away_temperature", 5, 27), ("boost_temperature", 5, 27),
         ("occupancy_margin",0,100),
+        ("room_buffer",0,10), ("morning_target",5,27), ("morning_duration",1,240),
         ("sleep_temperature", 5, 27), ("boost_minutes", 1, 240),
         ("occupancy_rise_minutes", 1, 60), ("occupancy_decay_minutes", 1, 180),
         ("away_delay_minutes", 0, 180), ("sensor_timeout_minutes", 5, 1440),
@@ -34,13 +35,7 @@ def validate(config):
         raise ValueError("Configure 1 to 20 rooms")
     ids, names = set(), set()
     for room in rooms:
-        for key,default in [("hot_buffer",2.0),("cold_buffer",2.0)]:
-            room.setdefault(key,default)
-            v=float(room[key])
-            if not math.isfinite(v) or not 0<=v<=10:
-                raise ValueError("Invalid room protection buffer")
-            room[key]=v
-        room.setdefault("tuning_mode", "manual")
+        room.setdefault("tuning_mode", "auto")
         for key, default, high in [("kp", 0.2, 2), ("ki", 0.000035, 0.001), ("kd", 0.0, 3600)]:
             room.setdefault(key, default)
             if not math.isfinite(float(room[key])) or not 0 <= room[key] <= high:
@@ -54,6 +49,18 @@ def validate(config):
         if not room.get("temperature_sensors"):
             raise ValueError("Every room needs a temperature sensor")
     schedule_ids=set()
+    if not isinstance(config["morning_enabled"],bool):
+        raise ValueError("Invalid morning enabled setting")
+    if not isinstance(config["alarm_sensors"],list) or any(not isinstance(e,str) or not e.startswith("sensor.") for e in config["alarm_sensors"]):
+        raise ValueError("Select alarm sensors")
+    if len(set(config["alarm_sensors"]))!=len(config["alarm_sensors"]):
+        raise ValueError("Duplicate alarm sensors")
+    if config["morning_enabled"] and not config["alarm_sensors"]:
+        raise ValueError("Morning comfort needs an alarm sensor")
+    if not isinstance(config["alarm_owners"],dict) or any(e not in config["alarm_sensors"] or not isinstance(p,str) or not p.startswith("person.") for e,p in config["alarm_owners"].items()):
+        raise ValueError("Invalid alarm owner")
+    if config["morning_source"] not in {"Auto","Average",*ids} or config["morning_target"]>=config["max_temperature"]:
+        raise ValueError("Invalid morning target or room")
     for binding in config["schedules"]:
         if binding["id"] in schedule_ids or not binding["name"].strip():
             raise ValueError("Invalid schedule name or ID")

@@ -110,6 +110,9 @@ class GroupForecast:
     def time_to_target(self, temperature, target, outdoor):
         return max(model.time_to_target(measured,target,outdoor) for model,measured in self.rooms)
 
+    def duty_to_target(self,temperature,target,outdoor,seconds):
+        return max(model.duty_to_target(measured,target,outdoor,seconds) for model,measured in self.rooms)
+
 
 @dataclass
 class PID:

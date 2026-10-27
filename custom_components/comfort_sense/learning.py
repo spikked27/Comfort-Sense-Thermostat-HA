@@ -59,6 +59,16 @@ class ThermalModel:
         equilibrium = outdoor + (self.heat_rate * duty + self.bias) / self.loss_rate
         return equilibrium + (temperature - equilibrium) * math.exp(-self.loss_rate * seconds / 3600)
 
+    def duty_to_target(self,temperature,target,outdoor,seconds):
+        """Required average duty to reach a deadline, allowing for delivery delay."""
+        if temperature>=target:
+            return 0.0
+        available=max(1,seconds-self.delay)
+        initial=self.forecast(temperature,outdoor,0,self.delay)
+        low=self.forecast(initial,outdoor,0,available)
+        high=self.forecast(initial,outdoor,1,available)
+        return max(0,min(1,(target-low)/max(1e-9,high-low)))
+
 
 def solve(matrix, vector):
     """Small least-squares normal system with partial pivoting; reject singular data."""

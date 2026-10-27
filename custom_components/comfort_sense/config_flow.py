@@ -47,7 +47,7 @@ def room_schema(room=None,unit="°C"):
         vol.Required("name",default=r.get("name","")):str,
         vol.Required("temperature_sensors",default=r.get("temperature_sensors",[])):entity("sensor",True),
         vol.Optional("occupancy_sensors",default=r.get("occupancy_sensors",[])):entity("binary_sensor",True),
-        vol.Required("tuning_mode",default=r.get("tuning_mode","manual")):vol.In({"manual":"Manual PID gains","auto":"Automatic validated room tuning"}),
+        vol.Required("tuning_mode",default=r.get("tuning_mode","auto")):vol.In({"auto":"Automatic validated room tuning","manual":"Manual PID gains"}),
     })
 
 
@@ -144,7 +144,7 @@ class Editor:
                     if not state or (state.attributes.get("unit_of_measurement") not in ("°C","°F","K") and state.attributes.get("device_class") != "temperature"):
                         raise ValueError("Select temperature sensors")
                 self.config["rooms"]=rooms
-                if room.get("tuning_mode","manual")=="manual":
+                if room.get("tuning_mode","auto")=="manual":
                     self.editing=room["id"]
                     return await self.async_step_room_gains()
                 return await self.async_step_manage()
@@ -223,6 +223,8 @@ class Editor:
                 self.editing=None
                 return await self.async_step_schedule()
             if action=="settings":return await self.async_step_schedule_settings()
+            if action=="morning":return await self.async_step_morning()
+            if action=="alarm_owner":return await self.async_step_alarm_owner()
             if action=="back":return await self.next_menu()
             if action=="finish":return await self.async_step_review()
             self.editing=action.split(":",1)[1]
@@ -232,7 +234,9 @@ class Editor:
                 self.config["schedules"]=[s for s in bindings if s["id"]!=self.editing]
                 return await self.async_step_schedules()
             return await self.async_step_schedule()
-        choices={"add":"Connect a Schedule helper","settings":"Warm-up planning settings"}
+        choices={"add":"Connect a Schedule helper","morning":"Morning comfort from phone alarms","settings":"Warm-up planning settings"}
+        if self.config.get("alarm_sensors"):
+            choices["alarm_owner"]="Associate an alarm with a person (optional)"
         for b in bindings:
             suffix=" (migrated)" if not b.get("entity_id") else ""
             choices[f"edit:{b['id']}"]=f"Edit {b['name']}{suffix}"
@@ -281,6 +285,47 @@ class Editor:
                 number(display_rate(0.1,self.form_unit),display_rate(5,self.form_unit),self.form_unit+"/h"),
         }),description_placeholders={"temperature_unit":self.form_unit})
 
+    async def async_step_morning(self,user_input=None):
+        errors={}
+        if user_input is not None:
+            try:
+                candidate={**self.config,**user_input,
+                    "morning_target":native_temperature(user_input["morning_target"],self.form_unit)}
+                candidate["alarm_owners"]={e:p for e,p in self.config["alarm_owners"].items() if e in candidate["alarm_sensors"]}
+                validate(candidate)
+                for eid in candidate["alarm_sensors"]:
+                    state=self.hass.states.get(eid)
+                    if state is None or state.attributes.get("device_class")!="timestamp":
+                        raise ValueError("Select next-alarm timestamp sensors")
+                self.config=candidate
+                return await self.async_step_schedules()
+            except (ValueError,TypeError,KeyError):
+                errors["base"]="invalid_morning"
+        self.form_unit=self.unit
+        c={**self.config,**(user_input or {})}
+        target=(user_input["morning_target"] if user_input else display_temperature(c["morning_target"],self.unit))
+        return self.async_show_form(step_id="morning",data_schema=vol.Schema({
+            vol.Required("morning_enabled",default=c["morning_enabled"]):bool,
+            vol.Required("alarm_sensors",default=c["alarm_sensors"]):entity("sensor",True),
+            vol.Required("morning_target",default=round(target,3)):temperature(5,27,self.unit),
+            vol.Required("morning_source",default=c["morning_source"]):vol.In(source_choices(self.config)),
+            vol.Required("morning_duration",default=c["morning_duration"]):number(1,240,"min"),
+        }),errors=errors,description_placeholders={"temperature_unit":self.unit})
+
+    async def async_step_alarm_owner(self,user_input=None):
+        if user_input is not None:
+            eid=user_input["alarm_sensor"]
+            if eid in self.config["alarm_sensors"]:
+                if user_input.get("person"):
+                    self.config["alarm_owners"][eid]=user_input["person"]
+                else:
+                    self.config["alarm_owners"].pop(eid,None)
+            return await self.async_step_schedules()
+        return self.async_show_form(step_id="alarm_owner",data_schema=vol.Schema({
+            vol.Required("alarm_sensor"):vol.In(self.config["alarm_sensors"]),
+            vol.Optional("person"):entity("person"),
+        }),description_placeholders={"owners":", ".join(f"{e}: {p}" for e,p in self.config["alarm_owners"].items()) or "None"})
+
     async def async_step_review(self,user_input=None):
         if user_input and user_input.get("action")=="back":return await self.next_menu()
         schema=vol.Schema({vol.Optional("action",default="save"):vol.In({"save":"Save configuration","back":"Back to configuration"})})
@@ -297,7 +342,7 @@ class Editor:
 
 
 class ComfortSenseConfigFlow(Editor,config_entries.ConfigFlow,domain=DOMAIN):
-    VERSION=3
+    VERSION=4
 
     def __init__(self):self.config=deepcopy({**DEFAULTS,"rooms":[]})
 

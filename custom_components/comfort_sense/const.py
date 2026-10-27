@@ -13,7 +13,10 @@ DEFAULTS = {
     "min_on_seconds": 300, "min_off_seconds": 300, "pwm_seconds": 1200,
     "max_temperature": 28.0, "max_preheat_minutes": 240,
     "fallback_heat_rate": 0.5,
-    "average_tuning_mode": "manual", "average_kp": 0.2,
+    "room_buffer": 2.0,
+    "morning_enabled": False, "alarm_sensors": [], "alarm_owners": {},
+    "morning_target": 20.0, "morning_source": "Average", "morning_duration": 60,
+    "average_tuning_mode": "auto", "average_kp": 0.2,
     "average_ki": 0.000035, "average_kd": 0.0,
     "schedules": [],
 }
