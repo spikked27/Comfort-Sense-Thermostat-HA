@@ -30,14 +30,14 @@ its integral and derivative history when membership changes. Group preheat uses
 the slowest selected room's learned arrival estimate when every model is ready;
 otherwise it uses the fallback rate.
 
-## Warm and cold buffers
+## One room protection buffer
 
-Every room has separate **Warm buffer** and **Cold buffer** Configuration entities.
-Both default to 2°C / 3.6°F, relative to the thermostat's active target, including
-Away, Boost and scheduled targets. These settings apply to all configured rooms,
-including rooms outside the occupancy group.
+**Room protection buffer** is one Configuration entity for the entire thermostat.
+It defaults to 2°C / 3.6°F above and below the active target, including Away,
+Boost and scheduled targets. It covers every configured room, including rooms
+outside the occupancy group.
 
-For a 70°F target and 4°F buffers:
+For a 70°F target and a 4°F buffer:
 
 | Condition | Action |
 |---|---|
@@ -46,8 +46,8 @@ For a 70°F target and 4°F buffers:
 | A warm room and cold room conflict | The warm limit takes priority. |
 
 Small hysteresis (up to 0.2°C / 0.36°F) prevents chatter. Cold recovery aims just
-above the lower boundary, not at the full comfort setpoint. Set an individual
-buffer to **0** to disable that side of protection for that room. The absolute
+above the lower boundary, not at the full comfort setpoint. Set the overall
+buffer to **0** to disable both relative protections for all rooms. The absolute
 maximum temperature safeguard remains independent. Off stays Off; protection
 does not activate an Off thermostat or send commands in Shadow mode.
 
@@ -67,8 +67,16 @@ availability and protective demand; diagnostic temperatures are internally °C.
 
 Reaction time, room/Average tuning choices, manual PID gains, Away/Sleep/Boost
 temperatures and occupancy grouping tolerance are categorized as Configuration.
-Manual gains remain stored as fallbacks in Automatic mode; editing them does not
+Manual gain entities are hidden by default; reveal them in the entity settings or use the conditional Manual pages in Configure. Automatic tuning is the default for new room and Average controllers. Manual gains remain stored as fallbacks in Automatic mode; editing them does not
 replace a validated automatic tune. Switching to Manual applies those gains.
 
 Ordinary controls—thermostat temperature, Heat/Off, preset selection and temperature
 source—remain in Controls. Readings and status remain sensors.
+
+## Upgrade from separate buffers
+
+Existing room warm/cold buffers become one overall buffer, using the smallest
+previous room boundary (including zero). This applies the closest former limit
+to every room. Review this value after upgrading, especially if one former
+buffer was disabled. The old per-room buffer entities are removed. Explicit
+manual tuning choices and gains are preserved.

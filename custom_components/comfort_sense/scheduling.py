@@ -12,8 +12,13 @@ DAYS=("monday","tuesday","wednesday","thursday","friday","saturday","sunday")
 def migrate_config(config):
     """Move old room morning fields into independent legacy schedule bindings."""
     result=deepcopy(config)
+    if "room_buffer" not in result:
+        old=[float(r.get(k,2.0)) for r in result.get("rooms",[]) for k in ("hot_buffer","cold_buffer")]
+        result["room_buffer"]=min(old,default=2.0)
     schedules=result.setdefault("schedules",[])
     for room in result.get("rooms",[]):
+        room.pop("hot_buffer",None)
+        room.pop("cold_buffer",None)
         if room.get("morning_enabled"):
             weekly={day:[] for day in DAYS}
             hour,minute=map(int,room.get("morning_time","07:00").split(":"))

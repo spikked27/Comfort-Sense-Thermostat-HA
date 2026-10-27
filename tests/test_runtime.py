@@ -276,6 +276,7 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(json.loads(json.dumps(signature)),signature)
 
     async def test_validated_tune_applies_only_to_auto_room(self):
+        self.r.rooms[0]["tuning_mode"]="manual"
         self.r.rooms[1]["tuning_mode"]="auto"
         model=runtime.ThermalModel(1.8,0.06,0.15,1800,0.1,0.9,self.now.timestamp(),800)
         original=runtime.identify
@@ -357,7 +358,7 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_group_pid_controls_mean_without_clipped_room_output_bias(self):
         self.r.mode="heat"
-        for r in self.r.rooms:r.update(hot_buffer=0,cold_buffer=0)
+        self.r.config["room_buffer"]=0
         self.set("sensor.a","18","°C");self.set("sensor.b","24","°C")
         self.set("binary_sensor.a","on");self.set("binary_sensor.b","on")
         self.r.occupancy["a"].moving_average(True,1800)
@@ -385,7 +386,7 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_cold_unselected_room_requests_heat_but_warm_room_wins(self):
         self.r.mode="heat";self.r.source="a"
-        self.r.rooms[0]["hot_buffer"]=1
+        self.r.config["room_buffer"]=1
         self.set("sensor.a","21.5","°C");self.set("sensor.b","18","°C")
         await self.r.tick()
         self.assertGreater(self.r.duty,0)
@@ -411,6 +412,60 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         await self.r.change(source="Average")
         await self.r.change(source="Auto")
         self.assertEqual(self.r.occupancy["a"].score,previous)
+
+    async def test_alarm_preheat_latches_target_and_expires_without_changing_comfort(self):
+        deadline=self.now.timestamp()+1800
+        self.r.config.update(morning_enabled=True,alarm_sensors=["sensor.alarm"],morning_source="a",
+                             morning_target=22,morning_duration=60)
+        self.set("sensor.alarm",datetime.fromtimestamp(deadline,timezone.utc).isoformat())
+        await self.r.change(mode="heat")
+        self.assertEqual(self.r.reason,"Schedule preheat")
+        self.assertEqual(self.r.target_temperature,22)
+        self.assertEqual(self.r.active_source,"A")
+        self.assertEqual(self.hass.services.calls,[])
+        self.set("sensor.a","22","°C")
+        self.advance(30);await self.r.tick()
+        self.assertEqual(self.r.target_temperature,22)
+        self.assertTrue(self.r.schedule_plans[0]["active"])
+        self.advance(1800)
+        self.set("sensor.alarm","unknown")
+        await self.r.tick()
+        self.assertEqual(self.r.reason,"Scheduled comfort")
+        self.advance(3600);await self.r.tick()
+        self.assertEqual(self.r.target_temperature,21)
+        self.assertEqual(self.r.comfort_temperature,21)
+
+    async def test_alarm_cancellation_away_boost_off_and_warm_guard(self):
+        deadline=self.now.timestamp()+1800
+        self.r.config.update(morning_enabled=True,alarm_sensors=["sensor.alarm"],morning_source="a",morning_target=22)
+        self.set("sensor.alarm",datetime.fromtimestamp(deadline,timezone.utc).isoformat())
+        await self.r.tick()
+        self.assertEqual(self.r.duty,0)
+        self.assertFalse(self.r.proposed)
+        await self.r.change(mode="heat")
+        self.set("sensor.alarm","unknown")
+        self.advance(30);await self.r.tick()
+        self.assertFalse(self.r.schedule_plans)
+        self.assertEqual(self.r.target_temperature,21)
+        self.set("sensor.alarm",datetime.fromtimestamp(deadline,timezone.utc).isoformat())
+        await self.r.change(preset="away")
+        self.assertFalse(self.r.schedule_plans)
+        await self.r.change(preset="boost",boost_until=self.now.timestamp()+600)
+        self.assertFalse(self.r.schedule_plans)
+        self.set("sensor.b","25","°C")
+        await self.r.change(preset="comfort")
+        self.assertEqual(self.r.reason,"Warm room protection: B")
+        self.assertEqual(self.r.duty,0)
+
+    async def test_defaults_auto_and_explicit_manual_survives_global_buffer_migration(self):
+        self.assertEqual(self.r.config["average_tuning_mode"],"auto")
+        self.assertTrue(all(r["tuning_mode"]=="auto" for r in self.r.rooms))
+        self.entry.data["rooms"][0].update(tuning_mode="manual",kp=0.45,hot_buffer=1,cold_buffer=3)
+        migrated=runtime.Runtime(self.hass,self.entry)
+        self.assertEqual(migrated.rooms[0]["tuning_mode"],"manual")
+        self.assertEqual(migrated.pids["a"].kp,0.45)
+        self.assertEqual(migrated.config["room_buffer"],1)
+        self.assertNotIn("hot_buffer",migrated.rooms[0])
 
 
 if __name__=="__main__":unittest.main()

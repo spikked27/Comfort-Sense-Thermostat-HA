@@ -74,7 +74,7 @@ Choose binary occupancy sensors that reflect time spent in the room. Any selecte
 sensor On counts as occupied. Without occupancy sensors, manual room selection
 and Average still work.
 
-Choose **Manual PID gains** or **Automatic validated room tuning**. Manual gains appear on a separate page only when selected. Rooms follow the thermostat setpoint; there are no individual room target inputs. Every room and Average choose independently. Automatic mode uses
+**Automatic validated room tuning** is the default. Choose **Manual PID gains** only when you want to enter your own gains. Manual gains appear on a separate page only when selected. Rooms follow the thermostat setpoint; there are no individual room target inputs. Every room and Average choose independently. Automatic mode uses
 your manual gains until reliable learning data is available. Supplied gains are
 starting points, rather than a universal heating-system tune.
 

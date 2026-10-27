@@ -41,7 +41,7 @@
       },
       "room": {
         "title": "Room sensors and PID",
-        "description": "Choose room sensors and tuning. Auto can average similarly occupied rooms. Every source follows the single thermostat target. Room buffers and tuning entities are on the device page under Configuration.",
+        "description": "Choose room sensors and tuning. Automatic tuning is the default; manual gains appear only when selected. Every source follows the thermostat target. One Room protection buffer covers every room.",
         "data": {
           "name": "Room name",
           "temperature_sensors": "Temperature sensors",
@@ -72,7 +72,7 @@
       },
       "schedules": {
         "title": "Scheduling",
-        "description": "Create weekly time blocks in Settings → Devices & services → Helpers → Schedule, then connect that helper here. Times remain editable in HA’s native weekly editor.",
+        "description": "Connect native weekly Schedule helpers or configure morning comfort from phone next-alarm sensors. Both use the same learned warm-up planner.",
         "data": {
           "action": "Action"
         }
@@ -142,7 +142,7 @@
       },
       "average_pid": {
         "title": "Average PID tuning",
-        "description": "Average mode has its own PID controller. Automatic tuning waits for validated heating observations.",
+        "description": "Average has its own controller. Automatic tuning is the default and waits for validated heating observations. Manual values remain available under Advanced.",
         "data": {
           "average_tuning_mode": "Average PID tuning mode"
         }
@@ -163,6 +163,25 @@
           "priority": "Priority (higher wins)",
           "data_temperature_unit": "Default unit for additional block data"
         }
+      },
+      "morning": {
+        "title": "Morning comfort from phone alarms",
+        "description": "Aim to reach the target by the earliest selected next alarm, then hold for the chosen duration. Temperatures use {temperature_unit}. Automatic warm-up learns from normal heating. Off, Away, Boost and room protection retain priority. Optional alarm owners can be associated under Scheduling.",
+        "data": {
+          "morning_enabled": "Enable alarm-based morning comfort",
+          "alarm_sensors": "Phone next-alarm sensors",
+          "morning_target": "Morning temperature",
+          "morning_source": "Rooms to warm",
+          "morning_duration": "Maintain temperature after alarm (minutes)"
+        }
+      },
+      "alarm_owner": {
+        "title": "Associate an alarm with a person",
+        "description": "Only use this phone's alarm when its person is home. Leave Person empty to remove the association. Unassociated alarms use the thermostat's overall home/away setting. Repeat for another phone if needed.",
+        "data": {
+          "alarm_sensor": "Phone next-alarm sensor",
+          "person": "Person (optional)"
+        }
       }
     },
     "error": {
@@ -171,7 +190,8 @@
       "invalid_room": "Choose a unique room name, valid temperature sensors and PID tuning mode.",
       "invalid_config": "Check equipment, rooms and schedule bindings. Removed rooms must also be removed from schedule bindings; targets must be below the safety limit.",
       "invalid_schedule": "Choose an existing Schedule helper, a valid source and a target below the safety limit.",
-      "invalid_cycle": "The PWM cycle must be at least the minimum on time plus minimum off time."
+      "invalid_cycle": "The PWM cycle must be at least the minimum on time plus minimum off time.",
+      "invalid_morning": "Select next-alarm timestamp sensors, an existing room or Average, and a target below the safety limit."
     }
   },
   "options": {
@@ -215,7 +235,7 @@
       },
       "room": {
         "title": "Room sensors and PID",
-        "description": "Choose room sensors and tuning. Auto can average similarly occupied rooms. Every source follows the single thermostat target. Room buffers and tuning entities are on the device page under Configuration.",
+        "description": "Choose room sensors and tuning. Automatic tuning is the default; manual gains appear only when selected. Every source follows the thermostat target. One Room protection buffer covers every room.",
         "data": {
           "name": "Room name",
           "temperature_sensors": "Temperature sensors",
@@ -246,7 +266,7 @@
       },
       "schedules": {
         "title": "Scheduling",
-        "description": "Create weekly time blocks in Settings → Devices & services → Helpers → Schedule, then connect that helper here. Times remain editable in HA’s native weekly editor.",
+        "description": "Connect native weekly Schedule helpers or configure morning comfort from phone next-alarm sensors. Both use the same learned warm-up planner.",
         "data": {
           "action": "Action"
         }
@@ -316,7 +336,7 @@
       },
       "average_pid": {
         "title": "Average PID tuning",
-        "description": "Average mode has its own PID controller. Automatic tuning waits for validated heating observations.",
+        "description": "Average has its own controller. Automatic tuning is the default and waits for validated heating observations. Manual values remain available under Advanced.",
         "data": {
           "average_tuning_mode": "Average PID tuning mode"
         }
@@ -337,6 +357,25 @@
           "priority": "Priority (higher wins)",
           "data_temperature_unit": "Default unit for additional block data"
         }
+      },
+      "morning": {
+        "title": "Morning comfort from phone alarms",
+        "description": "Aim to reach the target by the earliest selected next alarm, then hold for the chosen duration. Temperatures use {temperature_unit}. Automatic warm-up learns from normal heating. Off, Away, Boost and room protection retain priority. Optional alarm owners can be associated under Scheduling.",
+        "data": {
+          "morning_enabled": "Enable alarm-based morning comfort",
+          "alarm_sensors": "Phone next-alarm sensors",
+          "morning_target": "Morning temperature",
+          "morning_source": "Rooms to warm",
+          "morning_duration": "Maintain temperature after alarm (minutes)"
+        }
+      },
+      "alarm_owner": {
+        "title": "Associate an alarm with a person",
+        "description": "Only use this phone's alarm when its person is home. Leave Person empty to remove the association. Unassociated alarms use the thermostat's overall home/away setting. Repeat for another phone if needed.",
+        "data": {
+          "alarm_sensor": "Phone next-alarm sensor",
+          "person": "Person (optional)"
+        }
       }
     },
     "error": {
@@ -345,7 +384,8 @@
       "invalid_room": "Choose a unique room name, valid temperature sensors and PID tuning mode.",
       "invalid_config": "Check equipment, rooms and schedule bindings. Removed rooms must also be removed from schedule bindings; targets must be below the safety limit.",
       "invalid_schedule": "Choose an existing Schedule helper, a valid source and a target below the safety limit.",
-      "invalid_cycle": "The PWM cycle must be at least the minimum on time plus minimum off time."
+      "invalid_cycle": "The PWM cycle must be at least the minimum on time plus minimum off time.",
+      "invalid_morning": "Select next-alarm timestamp sensors, an existing room or Average, and a target below the safety limit."
     }
   }
 }

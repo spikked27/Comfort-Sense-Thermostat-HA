@@ -1,5 +1,6 @@
 """ComfortSense occupancy-aware thermostat integration."""
 from homeassistant.const import EVENT_HOMEASSISTANT_STOP
+from homeassistant.helpers import entity_registry as er
 from .const import DOMAIN, PLATFORMS
 from .runtime import Runtime
 from .scheduling import migrate_config
@@ -7,7 +8,7 @@ from .settings import validate
 
 
 async def async_migrate_entry(hass,entry):
-    if entry.version>3:
+    if entry.version>4:
         return False
     if entry.version==1:
         data=migrate_config({**entry.data,**entry.options})
@@ -17,6 +18,14 @@ async def async_migrate_entry(hass,entry):
         data.setdefault("comfort_temperature",next((r.get("target",21) for r in data.get("rooms",[])),21))
         data.setdefault("reaction_time","medium")
         hass.config_entries.async_update_entry(entry,data=data,options={},version=3)
+    if entry.version==3:
+        data=migrate_config({**entry.data,**entry.options})
+        registry=er.async_get(hass)
+        for entity in er.async_entries_for_config_entry(registry,entry.entry_id):
+            if entity.domain=="number" and entity.platform==DOMAIN and entity.unique_id.endswith(("_kp","_ki","_kd")) and entity.hidden_by is None:
+                registry.async_update_entity(entity.entity_id,hidden_by=er.RegistryEntryHider.INTEGRATION)
+        # Existing explicit manual choices and gains remain intact.
+        hass.config_entries.async_update_entry(entry,data=data,options={},version=4)
     return True
 
 

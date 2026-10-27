@@ -116,6 +116,8 @@ household heating patterns; do not attach it to a public issue.
 
 [Native weekly scheduling, block overrides and priority →](SCHEDULING.md)
 
-## Occupancy groups and room buffers
+## Occupancy groups and room protection
 
-On the device page, open **Configuration** to change grouping tolerance, reaction time, each room’s Warm/Cold buffers, tuning choices, manual gains and preset temperatures. Changes persist immediately without restarting the controller. [Behavior and buffer examples](ROOM_PROTECTION.md).
+On the device page, open **Configuration** to change grouping tolerance, reaction time, the overall Room protection buffer, tuning choices, optional manual gains and preset temperatures. Changes persist immediately without restarting the controller. [Behavior and buffer examples](ROOM_PROTECTION.md).
+
+Automatic PID tuning is the default. Manual gain entities are hidden by default; the Advanced/room Manual forms remain available. See [phone-alarm morning comfort](SCHEDULING.md#phone-alarm-morning-comfort) for ready-by heating.

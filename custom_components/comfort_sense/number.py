@@ -12,17 +12,16 @@ from .units import display_rate, native_rate
 async def async_setup_entry(hass, entry, async_add_entities):
     registry = er.async_get(hass)
     for entity in er.async_entries_for_config_entry(registry, entry.entry_id):
-        if entity.domain == "number" and entity.platform == "comfort_sense" and entity.unique_id.endswith("_target"):
+        if entity.domain == "number" and entity.platform == "comfort_sense" and entity.unique_id.endswith(("_target","_hot_buffer","_cold_buffer")):
             registry.async_remove(entity.entity_id)
     runtime=hass.data[DOMAIN][entry.entry_id]
     entities=[SettingNumber(runtime,"occupancy_margin","Occupancy grouping tolerance",0,100,1,"%")]
+    entities.append(SettingNumber(runtime,"room_buffer","Room protection buffer",0,10,0.1,delta=True))
     for key,label in [("away_temperature","Away temperature"),("sleep_temperature","Sleep temperature"),("boost_temperature","Boost temperature")]:
         entities.append(SettingNumber(runtime,key,label,5,27,0.1,temperature=True))
     for key,low,high,step in [("kp",0,2,0.01),("ki",0,0.001,0.000001),("kd",0,3600,1)]:
         entities.append(SettingNumber(runtime,"average_"+key,"Average manual "+key.upper(),low,high,step))
     for room in runtime.rooms:
-        for key,label in [("hot_buffer","Warm buffer"),("cold_buffer","Cold buffer")]:
-            entities.append(SettingNumber(runtime,key,room["name"]+" "+label,0,10,0.1,room_id=room["id"],delta=True))
         for key,low,high,step in [("kp",0,2,0.01),("ki",0,0.001,0.000001),("kd",0,3600,1)]:
             entities.append(SettingNumber(runtime,key,room["name"]+" manual "+key.upper(),low,high,step,room_id=room["id"]))
     async_add_entities(entities)
@@ -35,6 +34,7 @@ class SettingNumber(ComfortSenseEntity, NumberEntity):
     def __init__(self,runtime,key,label,low,high,step,unit=None,room_id=None,delta=False,temperature=False):
         self.key,self.room_id,self.delta,self.temperature=key,room_id,delta,temperature
         self.low,self.high=low,high
+        self._attr_entity_registry_visible_default=key not in ("kp","ki","kd","average_kp","average_ki","average_kd")
         super().__init__(runtime,f"config_{room_id+'_' if room_id else ''}{key}",label)
         self._attr_native_step=step
         self._attr_native_unit_of_measurement=unit

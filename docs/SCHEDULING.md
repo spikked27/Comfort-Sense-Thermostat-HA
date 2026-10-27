@@ -1,9 +1,73 @@
-# Weekly schedules
+# Schedules and morning comfort
 
 [← Overview](../README.md) · [User guide](USER_GUIDE.md)
 
 Comfort Sense uses Home Assistant's native **Schedule helpers**. Edit times in the
 familiar weekly grid, independently of your rooms, sensors or heating equipment.
+Phone alarms can supply a morning deadline to the same warm-up planner.
+
+## Phone-alarm morning comfort
+
+Open **Configure → Scheduling → Morning comfort from phone alarms**. Enable it,
+select your phone next-alarm timestamp sensors, choose a target and room/Auto/Average,
+and set the hold duration. For example: **68°F by the next alarm, hold 60 minutes**.
+The default target is 20°C / 68°F. It is independent of the ordinary thermostat
+target, which resumes when the hold ends. The earliest valid phone alarm wins.
+No separate scheduler, custom card, or automation is needed.
+
+Under Scheduling, **Associate an alarm with a person (optional)** lets you link each
+phone to its HA `person` entity. Only alarms whose associated person is **home**
+participate; unknown/unavailable presence excludes that phone. Repeat for the
+other phone. Leave Person empty to remove a mapping. Without mappings, the
+thermostat's overall home/away detection applies; it cannot distinguish which
+owner is home. Owner mappings are shown in the form description when editing.
+
+Use a dedicated room if you want the bedroom ready regardless of nighttime
+occupancy history. Auto follows occupancy; Average warms the equal-room average.
+Room protection still covers all rooms.
+
+Alarms must have timezone-aware timestamps within the next 24 hours, or be within
+the current hold period. The integration listens for changes to selected alarms
+and owners, and checks again every 30 seconds. Before firing, changing an alarm
+replans warm-up; clearing it or making it unavailable cancels that phone's plan.
+After firing, the current event is retained until its hold ends even if the phone
+clears it or advances to tomorrow. A second phone or snooze does not extend the
+same day's morning session. Fired events and completed local days are persisted.
+If an owner leaves home, their alarm stops participating. All selected clock-app
+alarms count, including naps; choose appropriate sources. Android's Next Alarm
+allow list should select your actual clock app:
+[Companion alarm sensor documentation](https://companion.home-assistant.io/docs/core/sensors/#next-alarm-sensor).
+
+Alarms have priority **10**; weekly helpers default to **0**. You can set a weekly
+binding above 10 under its Advanced settings to override morning comfort.
+If no valid alarm exists, native weekly schedules continue independently.
+Off stays Off, confirmed Away suppresses schedules, and manual Boost takes
+temporary priority. Shadow calculates plans without commanding the heater.
+Restart still leaves the thermostat Off; select Heat to resume.
+
+## Learning and ready-by status
+
+Normal heating observations identify each room's heat delivery delay, heating rate
+and outdoor heat loss. Automatic PID tuning and the warm-up planner share those
+validated models. Initially, a conservative fallback rate plans warm-up. A model
+needs at least 48 hours, 400 valid samples and 12 heating transitions, plus validation;
+48 hours alone does not guarantee acceptance. Outdoor and relay observations are
+required for learning. Manual PID remains available independently of preheating.
+
+Once preheat starts, it stays active through the deadline, maintaining the target
+until the weekly block or alarm hold ends. **Ready by** and **Estimated heating
+start** sensors show the selected plan (or nearest future plan), its target,
+confidence and reachability. Control status reports preheating versus scheduled
+comfort. The ordinary **Active room** sensor continues to name the rooms controlled.
+
+Successful uninterrupted real-heating arrivals with a validated model also record
+arrival error and slowly adjust future model lead times for that temperature source.
+Each arrival changes the correction by at most five minutes, bounded to ±30 minutes
+overall and the maximum preheat limit. Shadow runs, unavailable inputs, interrupted
+plans, protection overrides, command failures and overlapping independent-room plans
+do not train these corrections. Source corrections persist across restart and reset
+when the heater, outdoor sensor or room sensor signatures change. These estimates
+cannot guarantee arrival when heating capacity or room protections prevent it.
 
 ## Create a schedule
 

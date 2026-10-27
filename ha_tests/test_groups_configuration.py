@@ -33,10 +33,10 @@ async def test_configuration_entities_live_persistence_units_and_no_unload(hass)
     registry=er.async_get(hass)
     entities=er.async_entries_for_config_entry(registry,entry.entry_id)
     settings=[e for e in entities if "_config_" in e.unique_id]
-    assert len(settings)==21
+    assert len(settings)==18
     assert all(e.entity_category==EntityCategory.CONFIG for e in settings)
     assert registry.async_get("select.test_heat_temperature_source").entity_category is None
-    eid="number.test_heat_living_room_warm_buffer"
+    eid="number.test_heat_room_protection_buffer"
     assert hass.states.get(eid).attributes["unit_of_measurement"]=="°F"
     assert float(hass.states.get(eid).state)==pytest.approx(3.6)
     await hass.services.async_call("number","set_value",{"entity_id":eid,"value":4},blocking=True)
@@ -46,7 +46,7 @@ async def test_configuration_entities_live_persistence_units_and_no_unload(hass)
     await hass.async_block_till_done()
     assert hass.data[DOMAIN][entry.entry_id] is runtime
     assert runtime.mode=="heat"
-    assert runtime.rooms[0]["hot_buffer"]==pytest.approx(4/1.8)
+    assert runtime.config["room_buffer"]==pytest.approx(4/1.8)
     assert runtime.config["away_temperature"]==pytest.approx((65-32)/1.8)
     assert entry.options["occupancy_margin"]==25
     assert entry.options["reaction_time"]=="slow"
@@ -54,7 +54,7 @@ async def test_configuration_entities_live_persistence_units_and_no_unload(hass)
     await hass.async_block_till_done()
     restored=hass.data[DOMAIN][entry.entry_id]
     assert restored.config["reaction_time"]=="slow"
-    assert restored.rooms[0]["hot_buffer"]==pytest.approx(4/1.8)
+    assert restored.config["room_buffer"]==pytest.approx(4/1.8)
 
 
 async def test_group_mean_single_target_and_room_protection(hass):

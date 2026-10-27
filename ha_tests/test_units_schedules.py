@@ -66,7 +66,7 @@ async def test_v1_migration_preserves_entry_and_old_schedule(hass):
     entry.add_to_hass(hass)
     eid=entry.entry_id
     assert await hass.config_entries.async_setup(eid)
-    assert entry.entry_id==eid and entry.version==3
+    assert entry.entry_id==eid and entry.version==4
     assert entry.data["rooms"][0]["target"]==old["target"]
     assert "morning_time" not in entry.data["rooms"][0]
     assert entry.data["schedules"][0]["source"]=="study"
