@@ -44,3 +44,21 @@ environment; do not transfer its learned coefficients to a different home.
 ## Updating to 0.3
 
 The existing entry migrates automatically. The saved thermostat target becomes one shared comfort setpoint (for older divergent room overrides, the first configured room supplies it). Room target number entities are removed. Room IDs, learning, tuning choices, schedule connections and Shadow mode are preserved. Medium reaction replaces the previous exponential weighting with a 30-minute moving occupancy window. Select Heat after restart.
+
+## Updating to 0.5
+
+Update through HACS and restart HA when convenient, then select Heat to resume.
+New room and Average controllers default to Automatic PID; existing explicit
+Manual selections and gains are preserved. Manual gain entities become hidden
+once during migration; you can reveal them later without a reload hiding them again.
+
+Review **Configuration → Room protection buffer**. The smallest enabled former
+room warm/cold buffer becomes one symmetric limit for all rooms. If all previous
+buffers were zero, relative protection stays disabled. Old per-room buffer entities
+are removed; replace any dashboard or automation references with the overall buffer.
+
+Native schedules keep working. To use alarms, open **Configure → Scheduling →
+Morning comfort from phone alarms**. Enable it, select the phones' next-alarm
+sensors and choose the target, room source and hold duration. Optionally associate
+each phone with a person under Scheduling. No alarm sensors or persons are selected
+automatically during upgrade. See [scheduling](SCHEDULING.md).

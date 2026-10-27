@@ -29,6 +29,10 @@ cards:
         name: Requested furnace on-time (%)
       - entity: sensor.comfortsense_control_status
         name: Control status
+      - entity: sensor.comfortsense_ready_by
+        name: Ready by
+      - entity: sensor.comfortsense_estimated_heating_start
+        name: Estimated heating start
   - type: history-graph
     title: Thermostat temperature and target
     hours_to_show: 12
@@ -72,4 +76,4 @@ Celsius. Use the room temperature entities or the climate's displayed
 Older room-target number entities are removed in 0.3. Replace their cards with the
 thermostat dial and Active room sensor.
 
-Open the Comfort Sense device page’s **Configuration** section for reaction, grouping tolerance, per-room temperature buffers and tuning controls. All settings entities have HA’s Configuration category, so they can also be added to a dashboard entities card. [Room protection](ROOM_PROTECTION.md).
+Open the Comfort Sense device page’s **Configuration** section for reaction, grouping tolerance, the overall Room protection buffer and tuning choices. Manual gain entities are hidden by default; they remain available in Advanced or can be revealed in entity settings. [Room protection](ROOM_PROTECTION.md).

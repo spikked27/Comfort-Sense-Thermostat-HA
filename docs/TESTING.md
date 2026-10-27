@@ -51,3 +51,10 @@ ZIP after CI passes. Broader HACS catalog inclusion is a separate submission.
 The 0.3 usability changes pass all 73 tests in [GitHub CI](https://github.com/spikked27/Comfort-Sense-Thermostat-HA/actions/runs/38161847215). The test runs cover fresh setup through save and independent options pages; they do not establish performance on a particular furnace.
 
 The 0.4 grouping/protection implementation passes all 83 tests in [GitHub CI](https://github.com/spikked27/Comfort-Sense-Thermostat-HA/actions/runs/38166375107). Tests cover equal group control, membership reset, warm/cold priority, Configuration categories, temperature-difference conversion, persisted settings and updates without unloading an active controller.
+
+The 0.5 suite adds alarm cancellation/rescheduling, earliest-home-owner selection,
+persisted fired holds, local-day completion, timezone-aware timestamps, global
+buffer migration, hidden manual entities, automatic defaults, Fahrenheit morning
+setup, schedule priority, preheat target latching, model-required heating duty and
+bounded arrival corrections. Passing tests verify these behaviors; field arrival
+accuracy still depends on validated household learning and heating capacity.
