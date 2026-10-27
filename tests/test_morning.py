@@ -9,7 +9,7 @@ import unittest
 ROOT=Path(__file__).resolve().parents[1]/"custom_components/comfort_sense"
 package=ModuleType("comfort_alarm_test");package.__path__=[str(ROOT)]
 sys.modules[package.__name__]=package
-for name in ("units","scheduling","morning"):
+for name in ("units","scheduling","morning","learning"):
     spec=importlib.util.spec_from_file_location(f"{package.__name__}.{name}",ROOT/f"{name}.py")
     mod=importlib.util.module_from_spec(spec);sys.modules[spec.name]=mod;spec.loader.exec_module(mod)
 morning=sys.modules["comfort_alarm_test.morning"]
@@ -80,6 +80,14 @@ class AlarmTests(unittest.TestCase):
 
 
 class ArrivalTests(unittest.TestCase):
+    def test_deadline_duty_matches_model_forecast_and_bounds(self):
+        model=sys.modules["comfort_alarm_test.learning"].ThermalModel(3,0.05,0,600,0.1,0.8,0,800)
+        duty=model.duty_to_target(18,20,5,7200)
+        initial=model.forecast(18,5,0,600)
+        self.assertAlmostEqual(model.forecast(initial,5,duty,6600),20)
+        self.assertEqual(model.duty_to_target(18,20,5,100),1)
+        self.assertEqual(model.duty_to_target(20,20,5,7200),0)
+
     def plan(self):
         return {"binding_id":"morning","start":3600,"source":"Average","target":20,"active":True}
 

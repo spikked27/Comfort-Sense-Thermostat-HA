@@ -230,7 +230,9 @@ class Runtime:
                     if prediction["confidence"]=="learned":
                         prediction["lead_seconds"]=max(0,min(self.config["max_preheat_minutes"]*60,
                             prediction["lead_seconds"]+self.arrivals.corrections.get(window.source,0)))
-                    prediction["estimated_start"]=window.start-prediction["lead_seconds"]
+                    prediction["estimated_start"]=window.start-prediction["lead_seconds"] if window.preheat else window.start
+                    prediction["required_duty"]=(model.duty_to_target(temperature,window.target,self.outdoor,window.start-now)
+                        if model is not None and self.outdoor is not None and temperature is not None and now<window.start else 0)
                     in_block=window.start<=now<window.end
                     key=(window.binding_id,window.start)
                     preheating=(not in_block and window.preheat and temperature is not None and
@@ -451,6 +453,24 @@ class Runtime:
                 if not forced:self.duty=group_duty
                 self.group_data.update(duty=group_duty,gains=dict(zip(("kp","ki","kd"),gains)))
             cold_demands={}
+            # A model's full-output arrival estimate needs corresponding heat delivery.
+            # Raise ordinary PID demand only during preheat; coast and room guards win.
+            if not forced:
+                for plan in scheduled:
+                    if plan["phase"]!="preheat" or not plan.get("required_duty"):
+                        continue
+                    if plan["source"] in valid:
+                        measured=self.room_data[plan["source"]]["temperature"]
+                        controller=self.pids[plan["source"]]
+                        model=self.model(plan["source"],now)
+                    else:
+                        measured=self.current_temperature
+                        controller=average_pid if average_control else self.group_pid if group_control else self.pids[next(iter(selected))]
+                        models=[self.model(rid,now) for rid in selected]
+                        model=average_model if average_control else max((m for m in models if m),key=lambda m:m.delay,default=None)
+                    delay=model.delay if model else 600
+                    if measured is not None and measured+max(0,controller.derivative)*delay<plan["target"]:
+                        self.duty=max(self.duty,plan["required_duty"])
             for room in self.rooms:
                 rid=room["id"];row=self.room_data[rid];pid=self.cold_pids[rid]
                 main=self.pids[rid]

@@ -59,6 +59,11 @@ until the weekly block or alarm hold ends. **Ready by** and **Estimated heating
 start** sensors show the selected plan (or nearest future plan), its target,
 confidence and reachability. Control status reports preheating versus scheduled
 comfort. The ordinary **Active room** sensor continues to name the rooms controlled.
+During learned-model preheating, the planner can raise ordinary PID demand to the
+estimated duty needed for arrival. The measured coast cutoff, room guards, Off,
+Shadow and relay minimum times still apply. Ordinary PID regulation resumes at
+the deadline. This avoids predicting full-output warm-up while delivering only
+a small maintenance duty.
 
 Successful uninterrupted real-heating arrivals with a validated model also record
 arrival error and slowly adjust future model lead times for that temperature source.

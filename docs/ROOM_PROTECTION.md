@@ -76,7 +76,7 @@ source—remain in Controls. Readings and status remain sensors.
 ## Upgrade from separate buffers
 
 Existing room warm/cold buffers become one overall buffer, using the smallest
-previous room boundary (including zero). This applies the closest former limit
-to every room. Review this value after upgrading, especially if one former
-buffer was disabled. The old per-room buffer entities are removed. Explicit
+previous enabled room boundary. If all former buffers were zero, protection
+remains disabled. This applies the closest enabled former limit to every room.
+Review this value after upgrading. The old per-room buffer entities are removed. Explicit
 manual tuning choices and gains are preserved.

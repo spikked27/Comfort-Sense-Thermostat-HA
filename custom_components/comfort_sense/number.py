@@ -1,4 +1,4 @@
-"""Remove obsolete room targets: the thermostat owns one setpoint."""
+"""Live configuration controls, one protection buffer and optional manual gains."""
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode

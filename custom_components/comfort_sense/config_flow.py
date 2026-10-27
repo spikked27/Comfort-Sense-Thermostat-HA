@@ -324,7 +324,7 @@ class Editor:
         return self.async_show_form(step_id="alarm_owner",data_schema=vol.Schema({
             vol.Required("alarm_sensor"):vol.In(self.config["alarm_sensors"]),
             vol.Optional("person"):entity("person"),
-        }))
+        }),description_placeholders={"owners":", ".join(f"{e}: {p}" for e,p in self.config["alarm_owners"].items()) or "None"})
 
     async def async_step_review(self,user_input=None):
         if user_input and user_input.get("action")=="back":return await self.next_menu()

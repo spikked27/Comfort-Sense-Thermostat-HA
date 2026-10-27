@@ -14,7 +14,7 @@ def migrate_config(config):
     result=deepcopy(config)
     if "room_buffer" not in result:
         old=[float(r.get(k,2.0)) for r in result.get("rooms",[]) for k in ("hot_buffer","cold_buffer")]
-        result["room_buffer"]=min(old,default=2.0)
+        result["room_buffer"]=min((v for v in old if v>0),default=0.0) if old else 2.0
     schedules=result.setdefault("schedules",[])
     for room in result.get("rooms",[]):
         room.pop("hot_buffer",None)

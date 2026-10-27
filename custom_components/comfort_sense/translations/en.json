@@ -177,7 +177,7 @@
       },
       "alarm_owner": {
         "title": "Associate an alarm with a person",
-        "description": "Only use this phone's alarm when its person is home. Leave Person empty to remove the association. Unassociated alarms use the thermostat's overall home/away setting. Repeat for another phone if needed.",
+        "description": "Only use this phone's alarm when its person is home. Leave Person empty to remove the association. Unassociated alarms use the thermostat's overall home/away setting. Repeat for another phone if needed. Current associations: {owners}.",
         "data": {
           "alarm_sensor": "Phone next-alarm sensor",
           "person": "Person (optional)"
@@ -371,7 +371,7 @@
       },
       "alarm_owner": {
         "title": "Associate an alarm with a person",
-        "description": "Only use this phone's alarm when its person is home. Leave Person empty to remove the association. Unassociated alarms use the thermostat's overall home/away setting. Repeat for another phone if needed.",
+        "description": "Only use this phone's alarm when its person is home. Leave Person empty to remove the association. Unassociated alarms use the thermostat's overall home/away setting. Repeat for another phone if needed. Current associations: {owners}.",
         "data": {
           "alarm_sensor": "Phone next-alarm sensor",
           "person": "Person (optional)"

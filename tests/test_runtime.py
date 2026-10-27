@@ -467,5 +467,39 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(migrated.config["room_buffer"],1)
         self.assertNotIn("hot_buffer",migrated.rooms[0])
 
+    async def test_learned_alarm_deadline_supplies_needed_heat_and_respects_coast(self):
+        deadline=self.now.timestamp()+3600
+        self.r.config.update(morning_enabled=True,alarm_sensors=["sensor.alarm"],morning_source="a",morning_target=22)
+        self.r.models["a"]=runtime.ThermalModel(1.8,0.06,0.15,1800,0.1,0.9,self.now.timestamp(),800)
+        self.set("sensor.alarm",datetime.fromtimestamp(deadline,timezone.utc).isoformat())
+        await self.r.change(mode="heat")
+        self.assertEqual(self.r.schedule_plans[0]["confidence"],"learned")
+        self.assertEqual(self.r.duty,1)
+        self.set("sensor.a","21.9","°C")
+        self.advance(30);await self.r.tick()
+        self.assertEqual(self.r.duty,0)
+
+    async def test_alarm_and_native_schedule_share_priority_arbitration(self):
+        deadline=self.now.timestamp()+1800
+        self.r.config.update(morning_enabled=True,alarm_sensors=["sensor.alarm"],morning_source="a",morning_target=22)
+        self.set("sensor.alarm",datetime.fromtimestamp(deadline,timezone.utc).isoformat())
+        self.set("schedule.day","on")
+        binding={"id":"day","name":"Day","entity_id":"schedule.day","source":"a",
+                 "target":23,"data_temperature_unit":"°C","preheat":True,"priority":0}
+        self.r.config["schedules"]=[binding]
+        self.hass.services.schedule_response={"schedule.day":{"sunday":[{"from":"00:00","to":"23:59"}]}}
+        await self.r.change(mode="heat")
+        self.assertEqual(self.r.target_temperature,22)
+        binding["priority"]=20
+        await self.r.change(mode="heat")
+        self.assertEqual(self.r.target_temperature,23)
+
+    async def test_global_buffer_migration_keeps_enabled_protection(self):
+        self.entry.data["rooms"][0].update(hot_buffer=0,cold_buffer=0)
+        self.entry.data["rooms"][1].update(hot_buffer=1.5,cold_buffer=3)
+        self.assertEqual(runtime.Runtime(self.hass,self.entry).config["room_buffer"],1.5)
+        self.entry.data["rooms"][1].update(hot_buffer=0,cold_buffer=0)
+        self.assertEqual(runtime.Runtime(self.hass,self.entry).config["room_buffer"],0)
+
 
 if __name__=="__main__":unittest.main()
