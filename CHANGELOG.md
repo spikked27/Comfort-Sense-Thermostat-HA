@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.1a1
+
+- Add Temperature Preset Comfort to the device Configuration controls.
+- Group all four preset temperature controls under the Temperature Preset name prefix.
+- Synchronize Comfort with the thermostat dial and persist edits without interrupting active presets or schedules.
+- Preserve existing Away/Sleep/Boost entity IDs on upgrade.
+
 ## 0.5.0a1
 
 - Default new room and Average controllers to automatic validated PID tuning; preserve explicit existing choices.

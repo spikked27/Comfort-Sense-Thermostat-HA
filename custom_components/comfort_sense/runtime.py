@@ -577,6 +577,9 @@ class Runtime:
             else:
                 candidate.update(values)
             candidate=validate(candidate)
+            if not room_id and "comfort_temperature" in values:
+                self.comfort_temperature=candidate["comfort_temperature"]
+                self.save_later()
             self.config=candidate
             self.rooms=candidate["rooms"]
             for room in self.rooms:

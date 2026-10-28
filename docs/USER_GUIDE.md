@@ -121,3 +121,5 @@ household heating patterns; do not attach it to a public issue.
 On the device page, open **Configuration** to change grouping tolerance, reaction time, the overall Room protection buffer, tuning choices, optional manual gains and preset temperatures. Changes persist immediately without restarting the controller. [Behavior and buffer examples](ROOM_PROTECTION.md).
 
 Automatic PID tuning is the default. Manual gain entities are hidden by default; the Advanced/room Manual forms remain available. See [phone-alarm morning comfort](SCHEDULING.md#phone-alarm-morning-comfort) for ready-by heating.
+
+Preset temperatures are grouped under **Temperature Preset Away**, **Temperature Preset Boost**, **Temperature Preset Comfort** and **Temperature Preset Sleep** on the device Configuration page. Comfort edits the saved normal thermostat target; it stays synchronized with the dial. Editing Comfort during Away, Sleep, Boost or a schedule does not interrupt that active mode or plan. Existing preset entity IDs stay unchanged on upgrade.

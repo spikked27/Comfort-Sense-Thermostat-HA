@@ -33,7 +33,7 @@ async def test_configuration_entities_live_persistence_units_and_no_unload(hass)
     registry=er.async_get(hass)
     entities=er.async_entries_for_config_entry(registry,entry.entry_id)
     settings=[e for e in entities if "_config_" in e.unique_id]
-    assert len(settings)==18
+    assert len(settings)==19
     assert all(e.entity_category==EntityCategory.CONFIG for e in settings)
     assert registry.async_get("select.test_heat_temperature_source").entity_category is None
     eid="number.test_heat_room_protection_buffer"
@@ -42,7 +42,7 @@ async def test_configuration_entities_live_persistence_units_and_no_unload(hass)
     await hass.services.async_call("number","set_value",{"entity_id":eid,"value":4},blocking=True)
     await hass.services.async_call("number","set_value",{"entity_id":"number.test_heat_occupancy_grouping_tolerance","value":25},blocking=True)
     await hass.services.async_call("select","select_option",{"entity_id":"select.test_heat_occupancy_reaction_time","option":"Slow"},blocking=True)
-    await hass.services.async_call("number","set_value",{"entity_id":"number.test_heat_away_temperature","value":65},blocking=True)
+    await hass.services.async_call("number","set_value",{"entity_id":"number.test_heat_temperature_preset_away","value":65},blocking=True)
     await hass.async_block_till_done()
     assert hass.data[DOMAIN][entry.entry_id] is runtime
     assert runtime.mode=="heat"
