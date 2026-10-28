@@ -80,3 +80,5 @@ previous enabled room boundary. If all former buffers were zero, protection
 remains disabled. This applies the closest enabled former limit to every room.
 Review this value after upgrading. The old per-room buffer entities are removed. Explicit
 manual tuning choices and gains are preserved.
+
+Preset temperatures are grouped under **Temperature Preset Away**, **Temperature Preset Boost**, **Temperature Preset Comfort** and **Temperature Preset Sleep** on the device Configuration page. Comfort edits the saved normal thermostat target; it stays synchronized with the dial. Editing Comfort during Away, Sleep, Boost or a schedule does not interrupt that active mode or plan. Existing preset entity IDs stay unchanged on upgrade.

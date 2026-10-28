@@ -17,8 +17,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
     runtime=hass.data[DOMAIN][entry.entry_id]
     entities=[SettingNumber(runtime,"occupancy_margin","Occupancy grouping tolerance",0,100,1,"%")]
     entities.append(SettingNumber(runtime,"room_buffer","Room protection buffer",0,10,0.1,delta=True))
-    for key,label in [("away_temperature","Away temperature"),("sleep_temperature","Sleep temperature"),("boost_temperature","Boost temperature")]:
-        entities.append(SettingNumber(runtime,key,label,5,27,0.1,temperature=True))
+    for preset in ("comfort","away","sleep","boost"):
+        entities.append(SettingNumber(runtime,preset+"_temperature","Temperature Preset "+preset.title(),5,27,0.1,temperature=True))
     for key,low,high,step in [("kp",0,2,0.01),("ki",0,0.001,0.000001),("kd",0,3600,1)]:
         entities.append(SettingNumber(runtime,"average_"+key,"Average manual "+key.upper(),low,high,step))
     for room in runtime.rooms:
@@ -60,7 +60,7 @@ class SettingNumber(ComfortSenseEntity, NumberEntity):
     @property
     def native_value(self):
         config=next(r for r in self.runtime.rooms if r["id"]==self.room_id) if self.room_id else self.runtime.config
-        value=config[self.key]
+        value=self.runtime.comfort_temperature if self.key=="comfort_temperature" else config[self.key]
         return display_rate(value,self.unit) if self.delta else value
 
     async def async_set_native_value(self,value):

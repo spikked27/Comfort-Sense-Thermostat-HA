@@ -1,7 +1,7 @@
 {
   "domain": "comfort_sense",
   "name": "Comfort Sense Thermostat",
-  "version": "0.5.0a1",
+  "version": "0.5.1a1",
   "codeowners": [
     "@spikked27"
   ],
