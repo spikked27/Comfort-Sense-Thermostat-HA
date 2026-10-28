@@ -49,7 +49,7 @@ class Status(ComfortSenseEntity, SensorEntity):
     def extra_state_attributes(self):
         return {"shadow": self.runtime.config["shadow"], "learning": self.runtime.learning_status,
                 "schedules":self.runtime.schedule_status,"room_protection":self.runtime.guard_data,
-                "group_control":self.runtime.group_data}
+                "group_control":self.runtime.group_data,"ignored_alarms":self.runtime.morning.ignored}
 
 
 class ComfortDeadline(ComfortSenseEntity, SensorEntity):
@@ -74,7 +74,9 @@ class ComfortDeadline(ComfortSenseEntity, SensorEntity):
     def extra_state_attributes(self):
         plan=self.plan()
         return {"plan":plan,"thermostat_mode":self.runtime.mode,
-                "morning_status":self.runtime.morning.status,"last_arrival":self.runtime.arrivals.last_arrival}
+                "morning_status":self.runtime.morning.status,"ignored_alarms":self.runtime.morning.ignored,
+                "alarm_window_start":self.runtime.config["alarm_window_start"],"alarm_window_end":self.runtime.config["alarm_window_end"],
+                "last_arrival":self.runtime.arrivals.last_arrival}
 
 
 class Duty(ComfortSenseEntity, SensorEntity):

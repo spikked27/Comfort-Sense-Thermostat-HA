@@ -16,6 +16,7 @@ DEFAULTS = {
     "room_buffer": 2.0,
     "morning_enabled": False, "alarm_sensors": [], "alarm_owners": {},
     "morning_target": 20.0, "morning_source": "Average", "morning_duration": 60,
+    "alarm_window_start": "03:00", "alarm_window_end": "12:00",
     "average_tuning_mode": "auto", "average_kp": 0.2,
     "average_ki": 0.000035, "average_kd": 0.0,
     "schedules": [],

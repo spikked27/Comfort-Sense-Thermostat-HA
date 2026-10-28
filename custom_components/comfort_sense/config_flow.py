@@ -224,6 +224,7 @@ class Editor:
                 return await self.async_step_schedule()
             if action=="settings":return await self.async_step_schedule_settings()
             if action=="morning":return await self.async_step_morning()
+            if action=="alarm_window":return await self.async_step_alarm_window()
             if action=="alarm_owner":return await self.async_step_alarm_owner()
             if action=="back":return await self.next_menu()
             if action=="finish":return await self.async_step_review()
@@ -234,7 +235,8 @@ class Editor:
                 self.config["schedules"]=[s for s in bindings if s["id"]!=self.editing]
                 return await self.async_step_schedules()
             return await self.async_step_schedule()
-        choices={"add":"Connect a Schedule helper","morning":"Morning comfort from phone alarms","settings":"Warm-up planning settings"}
+        choices={"add":"Connect a Schedule helper","morning":"Morning comfort from phone alarms",
+                 "alarm_window":"Wake-up alarm time window (advanced)","settings":"Warm-up planning settings"}
         if self.config.get("alarm_sensors"):
             choices["alarm_owner"]="Associate an alarm with a person (optional)"
         for b in bindings:
@@ -311,6 +313,22 @@ class Editor:
             vol.Required("morning_source",default=c["morning_source"]):vol.In(source_choices(self.config)),
             vol.Required("morning_duration",default=c["morning_duration"]):number(1,240,"min"),
         }),errors=errors,description_placeholders={"temperature_unit":self.unit})
+
+    async def async_step_alarm_window(self,user_input=None):
+        errors={}
+        if user_input is not None:
+            try:
+                candidate={**self.config,**user_input}
+                validate(candidate)
+                self.config=candidate
+                return await self.async_step_schedules()
+            except (ValueError,TypeError):
+                errors["base"]="invalid_alarm_window"
+        c={**self.config,**(user_input or {})}
+        return self.async_show_form(step_id="alarm_window",data_schema=vol.Schema({
+            vol.Required("alarm_window_start",default=c["alarm_window_start"]):selector.TimeSelector(),
+            vol.Required("alarm_window_end",default=c["alarm_window_end"]):selector.TimeSelector(),
+        }),errors=errors)
 
     async def async_step_alarm_owner(self,user_input=None):
         if user_input is not None:

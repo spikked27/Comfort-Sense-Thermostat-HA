@@ -33,8 +33,7 @@ replans warm-up; clearing it or making it unavailable cancels that phone's plan.
 After firing, the current event is retained until its hold ends even if the phone
 clears it or advances to tomorrow. A second phone or snooze does not extend the
 same day's morning session. Fired events and completed local days are persisted.
-If an owner leaves home, their alarm stops participating. All selected clock-app
-alarms count, including naps; choose appropriate sources. Android's Next Alarm
+If an owner leaves home, their alarm stops participating. Selected clock-app alarms count only when their local deadline is inside the wake-up window; daytime naps inside that window are still indistinguishable from wake alarms. Android's Next Alarm
 allow list should select your actual clock app:
 [Companion alarm sensor documentation](https://companion.home-assistant.io/docs/core/sensors/#next-alarm-sensor).
 
@@ -170,3 +169,30 @@ fields are simply removed. You do not need to delete or recreate the integration
 
 The [official Schedule helper documentation](https://www.home-assistant.io/integrations/schedule/)
 explains its weekly editor, Additional data and native actions.
+
+## Wake-up window and Samsung bedtime events
+
+Samsung Clock can report both a bedtime/Sleep mode event and the morning alarm
+under `com.sec.android.app.clockpackage`. An app allow list cannot separate them.
+Comfort Sense therefore accepts alarm deadlines only from **03:00 through before
+12:00** by default, in HA's configured timezone. An 11:30 PM bedtime event is
+ignored. This also applies on upgrade and to persisted alarm events from before
+the filter existed, preventing an old bedtime event from retaining a comfort hold.
+
+Change the range under **Configure → Scheduling → Wake-up alarm time window
+(advanced)**. Start is inclusive and end is exclusive. Overnight ranges are
+supported for other work patterns; start and end must differ. Both phones use the
+same window. Ordinary morning setup remains unchanged.
+
+This filters the alarm deadline, not permitted heating hours: a valid 06:00 wake
+alarm may still start heating before 03:00 if its learned model needs that lead.
+A valid alarm's hold can continue after noon. Weekly Schedule helpers are not
+filtered, so they can provide a fallback regardless of the phone's reported alarm.
+Ignored alarms and their local times appear in Control status and Ready by
+attributes, with a waiting status rather than a bedtime preheat plan.
+
+Android exposes only the next scheduled alarm. While the bedtime event is next,
+the later wake alarm may not be visible. The filter cannot recover that hidden
+time or guarantee that the phone will publish it before the required preheat
+start. Once the phone advances to the actual morning alarm, Comfort Sense plans
+from that deadline. Use a weekly schedule when you need a reliable fallback.

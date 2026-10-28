@@ -104,3 +104,35 @@ async def test_new_room_flow_defaults_automatic_without_manual_page(hass,freezer
     assert flow["data"]["rooms"][0]["tuning_mode"]=="auto"
     assert flow["data"]["average_tuning_mode"]=="auto"
     await hass.async_block_till_done()
+
+
+async def test_wake_window_options_validate_and_persist(hass,freezer):
+    entry,runtime=await setup(hass,freezer)
+    flow=await hass.config_entries.options.async_init(entry.entry_id)
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{"next_step_id":"schedules"})
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{"action":"alarm_window"})
+    assert flow["step_id"]=="alarm_window"
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{"alarm_window_start":"04:00:00","alarm_window_end":"04:00:00"})
+    assert flow["errors"]["base"]=="invalid_alarm_window"
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{"alarm_window_start":"04:00:00","alarm_window_end":"10:00:00"})
+    assert flow["step_id"]=="schedules"
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{"action":"finish"})
+    flow=await hass.config_entries.options.async_configure(flow["flow_id"],{})
+    assert flow["type"]=="create_entry"
+    await hass.async_block_till_done()
+    assert entry.options["alarm_window_start"]=="04:00:00"
+    assert entry.options["alarm_window_end"]=="10:00:00"
+
+
+async def test_bedtime_from_samsung_clock_is_rejected_in_ha_local_time(hass,freezer):
+    entry,runtime=await setup(hass,freezer)
+    hass.states.async_set("sensor.alarm","2026-10-27T23:30:03-04:00",{"device_class":"timestamp","Package":"com.sec.android.app.clockpackage"})
+    runtime.config.update(morning_enabled=True,alarm_sensors=["sensor.alarm"])
+    await runtime.change(mode="heat")
+    await hass.async_block_till_done()
+    assert not runtime.schedule_plans
+    assert not runtime.preheat_latches
+    assert runtime.target_temperature==21
+    assert "03:00" in runtime.schedule_status["morning_alarm"]
+    state=hass.states.get("sensor.test_heat_control_status")
+    assert state.attributes["ignored_alarms"]["sensor.alarm"]["reason"]=="Outside wake-up window"

@@ -182,6 +182,14 @@
           "alarm_sensor": "Phone next-alarm sensor",
           "person": "Person (optional)"
         }
+      },
+      "alarm_window": {
+        "title": "Wake-up alarm time window",
+        "description": "Only alarms inside this local time window can trigger morning comfort. Defaults to 03:00–12:00, excluding bedtime and Sleep mode events from the same clock app. This filters alarm deadlines, not heater running hours. Start is inclusive, end is exclusive; overnight windows are supported. Times use Home Assistant's configured timezone.",
+        "data": {
+          "alarm_window_start": "Earliest wake-up alarm",
+          "alarm_window_end": "Latest wake-up alarm"
+        }
       }
     },
     "error": {
@@ -191,7 +199,8 @@
       "invalid_config": "Check equipment, rooms and schedule bindings. Removed rooms must also be removed from schedule bindings; targets must be below the safety limit.",
       "invalid_schedule": "Choose an existing Schedule helper, a valid source and a target below the safety limit.",
       "invalid_cycle": "The PWM cycle must be at least the minimum on time plus minimum off time.",
-      "invalid_morning": "Select next-alarm timestamp sensors, an existing room or Average, and a target below the safety limit."
+      "invalid_morning": "Select next-alarm timestamp sensors, an existing room or Average, and a target below the safety limit.",
+      "invalid_alarm_window": "Choose different valid start and end times for the wake-up window."
     }
   },
   "options": {
@@ -376,6 +385,14 @@
           "alarm_sensor": "Phone next-alarm sensor",
           "person": "Person (optional)"
         }
+      },
+      "alarm_window": {
+        "title": "Wake-up alarm time window",
+        "description": "Only alarms inside this local time window can trigger morning comfort. Defaults to 03:00–12:00, excluding bedtime and Sleep mode events from the same clock app. This filters alarm deadlines, not heater running hours. Start is inclusive, end is exclusive; overnight windows are supported. Times use Home Assistant's configured timezone.",
+        "data": {
+          "alarm_window_start": "Earliest wake-up alarm",
+          "alarm_window_end": "Latest wake-up alarm"
+        }
       }
     },
     "error": {
@@ -385,7 +402,8 @@
       "invalid_config": "Check equipment, rooms and schedule bindings. Removed rooms must also be removed from schedule bindings; targets must be below the safety limit.",
       "invalid_schedule": "Choose an existing Schedule helper, a valid source and a target below the safety limit.",
       "invalid_cycle": "The PWM cycle must be at least the minimum on time plus minimum off time.",
-      "invalid_morning": "Select next-alarm timestamp sensors, an existing room or Average, and a target below the safety limit."
+      "invalid_morning": "Select next-alarm timestamp sensors, an existing room or Average, and a target below the safety limit.",
+      "invalid_alarm_window": "Choose different valid start and end times for the wake-up window."
     }
   }
 }

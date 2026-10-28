@@ -1,5 +1,6 @@
 """Validate shared settings for setup, options and stored entry data."""
 import math
+from datetime import time
 from .const import DEFAULTS
 from .scheduling import migrate_config
 
@@ -49,6 +50,13 @@ def validate(config):
         if not room.get("temperature_sensors"):
             raise ValueError("Every room needs a temperature sensor")
     schedule_ids=set()
+    try:
+        start=time.fromisoformat(config["alarm_window_start"])
+        end=time.fromisoformat(config["alarm_window_end"])
+        if start.tzinfo is not None or end.tzinfo is not None or start==end:
+            raise ValueError("Wake-up window start and end must differ")
+    except (ValueError,TypeError):
+        raise ValueError("Choose different valid wake-up window times") from None
     if not isinstance(config["morning_enabled"],bool):
         raise ValueError("Invalid morning enabled setting")
     if not isinstance(config["alarm_sensors"],list) or any(not isinstance(e,str) or not e.startswith("sensor.") for e in config["alarm_sensors"]):
