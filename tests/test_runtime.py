@@ -84,6 +84,8 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.entry=SimpleNamespace(entry_id="test",data={"heater":"switch.heat", "rooms":[room(),room("b")],
             "home_sensor":"zone.home", "outdoor_sensor":"sensor.outdoor"},options={})
         self.r=runtime.Runtime(self.hass,self.entry)
+        # Synthetic alarm tests use noon deadlines; window filtering is tested separately.
+        self.r.config.update(alarm_window_start="00:00",alarm_window_end="23:59")
         self.set("switch.heat","off")
         self.set("sensor.a","68","°F")
         self.set("sensor.b","22","°C")
@@ -500,6 +502,36 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(runtime.Runtime(self.hass,self.entry).config["room_buffer"],1.5)
         self.entry.data["rooms"][1].update(hot_buffer=0,cold_buffer=0)
         self.assertEqual(runtime.Runtime(self.hass,self.entry).config["room_buffer"],0)
+
+    async def test_bedtime_does_not_create_schedule_or_latch_preheat(self):
+        self.r.config.update(morning_enabled=True,alarm_sensors=["sensor.alarm"],
+                             alarm_window_start="03:00",alarm_window_end="12:00")
+        self.set("sensor.alarm","2026-10-11T23:30:03Z")
+        await self.r.change(mode="heat")
+        self.assertFalse(self.r.schedule_plans)
+        self.assertFalse(self.r.preheat_latches)
+        self.assertEqual(self.r.target_temperature,self.r.comfort_temperature)
+        self.assertIn("Outside wake-up window",self.r.morning.ignored["sensor.alarm"]["reason"])
+
+    async def test_invalid_wake_windows_are_rejected(self):
+        for start,end in (("03:00","03:00"),("25:00","12:00"),(None,"12:00"),("03:00+05:00","12:00")):
+            self.entry.options={"alarm_window_start":start,"alarm_window_end":end}
+            with self.assertRaises(ValueError):
+                runtime.Runtime(self.hass,self.entry)
+
+    async def test_valid_wake_deadline_can_preheat_before_allowed_alarm_window(self):
+        self.now=self.now.replace(hour=2,minute=0)
+        self.r.last_fit=self.now.timestamp()
+        self.r.config.update(morning_enabled=True,alarm_sensors=["sensor.alarm"],morning_source="a",morning_target=22,
+                             alarm_window_start="03:00",alarm_window_end="12:00")
+        self.set("sensor.a","20","°C");self.set("sensor.b","20","°C")
+        self.set("sensor.outdoor","5","°C")
+        deadline=self.now.timestamp()+3600
+        self.set("sensor.alarm",datetime.fromtimestamp(deadline,timezone.utc).isoformat())
+        await self.r.change(mode="heat")
+        self.assertEqual(self.r.reason,"Schedule preheat")
+        self.assertEqual(self.r.schedule_plans[0]["start"],deadline)
+        self.assertEqual(self.r.target_temperature,22)
 
 
 if __name__=="__main__":unittest.main()

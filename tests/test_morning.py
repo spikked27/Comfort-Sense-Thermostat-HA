@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 from types import ModuleType, SimpleNamespace
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 import unittest
 
 ROOT=Path(__file__).resolve().parents[1]/"custom_components/comfort_sense"
@@ -77,6 +78,61 @@ class AlarmTests(unittest.TestCase):
     def test_offset_timestamp_is_same_instant(self):
         self.assertEqual(morning.alarm_timestamp("2026-10-27T06:00:00-04:00"),
                          morning.alarm_timestamp("2026-10-27T10:00:00Z"))
+
+    def test_samsung_bedtime_is_ignored_and_does_not_hide_other_phone(self):
+        zone=ZoneInfo("America/New_York")
+        self.now=morning.alarm_timestamp("2026-10-28T16:30:00-04:00")
+        self.states["sensor.matt"].state="2026-10-28T23:30:03-04:00"
+        self.states["sensor.wife"].state="2026-10-29T06:30:00-04:00"
+        plan=self.alarms.window(self.config,self.states,self.now,zone)
+        self.assertEqual(plan.entity_id,"sensor.wife")
+        self.assertIn("sensor.matt",self.alarms.ignored)
+        self.states["sensor.wife"].state="unavailable"
+        self.assertIsNone(self.alarms.window(self.config,self.states,self.now,zone))
+        self.assertIn("03:00–12:00",self.alarms.status)
+
+    def test_restored_bedtime_hold_is_discarded_without_consuming_wake_day(self):
+        zone=ZoneInfo("America/New_York")
+        bedtime=morning.alarm_timestamp("2026-10-28T23:30:03-04:00")
+        self.alarms.restore({"events":{"sensor.matt":{"start":bedtime}}},bedtime+300)
+        self.states["sensor.matt"].state="2026-10-29T06:00:00-04:00"
+        self.states["sensor.wife"].state="unavailable"
+        plan=self.alarms.window(self.config,self.states,bedtime+300,zone)
+        self.assertEqual(plan.start,morning.alarm_timestamp(self.states["sensor.matt"].state))
+        self.assertFalse(self.alarms.completed_days)
+
+    def test_window_is_local_start_inclusive_end_exclusive_and_accepts_overnight(self):
+        zone=ZoneInfo("America/New_York")
+        check=lambda value,start="03:00",end="12:00":morning.in_alarm_window(morning.alarm_timestamp(value),zone,start,end)
+        self.assertTrue(check("2026-10-29T03:00:00-04:00"))
+        self.assertFalse(check("2026-10-29T02:59:59-04:00"))
+        self.assertTrue(check("2026-10-29T11:59:59-04:00"))
+        self.assertFalse(check("2026-10-29T12:00:00-04:00"))
+        self.assertTrue(check("2026-10-29T23:30:03-04:00","22:00","08:00"))
+        self.assertFalse(check("2026-10-29T12:00:00-04:00","22:00","08:00"))
+
+    def test_dst_alarm_uses_local_time_for_both_offsets(self):
+        zone=ZoneInfo("America/New_York")
+        for offset in ("-04:00","-05:00"):
+            stamp=morning.alarm_timestamp("2026-11-01T01:30:00"+offset)
+            self.assertTrue(morning.in_alarm_window(stamp,zone,"01:00","02:00"))
+            self.assertFalse(morning.in_alarm_window(stamp,zone))
+
+    def test_valid_alarm_hold_continues_after_window_ends(self):
+        self.now=morning.alarm_timestamp("2026-10-27T11:30:00Z")
+        self.states["sensor.matt"].state="2026-10-27T11:45:00Z"
+        self.states["sensor.wife"].state="unavailable"
+        self.plan()
+        self.states["sensor.matt"].state="2026-10-28T11:45:00Z"
+        plan=self.plan(3600)
+        self.assertEqual(plan.start,morning.alarm_timestamp("2026-10-27T11:45:00Z"))
+
+    def test_bedtime_can_advance_to_valid_wake_alarm_after_filtering(self):
+        self.states["sensor.matt"].state="2026-10-27T23:30:03Z"
+        self.states["sensor.wife"].state="unavailable"
+        self.assertIsNone(self.plan())
+        self.states["sensor.matt"].state="2026-10-28T06:00:00Z"
+        self.assertIsNotNone(self.plan(19*3600))
 
 
 class ArrivalTests(unittest.TestCase):

@@ -1,5 +1,5 @@
 """Phone-alarm deadlines; no HA I/O or equipment commands."""
-from datetime import datetime
+from datetime import datetime, time
 import math
 
 from .scheduling import Window
@@ -14,11 +14,20 @@ def alarm_timestamp(value):
         return None
 
 
+def in_alarm_window(stamp,zone,start="03:00",end="12:00"):
+    """Filter the alarm's local wall time, not when preheating may run."""
+    lower=time.fromisoformat(start)
+    upper=time.fromisoformat(end)
+    actual=datetime.fromtimestamp(stamp,zone).time()
+    return lower<=actual<upper if lower<upper else actual>=lower or actual<upper
+
+
 class MorningAlarms:
     def __init__(self):
         self.events={}
         self.completed_days=set()
         self.status="Disabled"
+        self.ignored={}
 
     def restore(self,data,now):
         self.completed_days={str(d) for d in data.get("completed_days",[]) if isinstance(d,str)}
@@ -40,11 +49,14 @@ class MorningAlarms:
         the phone advancing/clearing its next alarm must not erase today's hold.
         At most one morning session runs per local day.
         """
+        self.ignored={}
         if not config["morning_enabled"]:
             self.events={}
             self.status="Disabled"
             return None
         duration=config["morning_duration"]*60
+        start_time=config.get("alarm_window_start","03:00")
+        end_time=config.get("alarm_window_end","12:00")
         candidates={}
         for eid in config["alarm_sensors"]:
             owner=config["alarm_owners"].get(eid)
@@ -54,6 +66,9 @@ class MorningAlarms:
                     continue
             old=self.events.get(eid)
             start=old["start"] if old else None
+            # Re-check restored events too: old bedtime holds must not survive this fix.
+            if start is not None and not in_alarm_window(start,zone,start_time,end_time):
+                start=None
             if start is not None and now>=start:
                 day=datetime.fromtimestamp(start,zone).date().isoformat()
                 if now<start+duration:
@@ -63,6 +78,9 @@ class MorningAlarms:
             state=states.get(eid)
             stamp=alarm_timestamp(state.state) if state else None
             if stamp is None or not now-duration<stamp<=now+86400:
+                continue
+            if not in_alarm_window(stamp,zone,start_time,end_time):
+                self.ignored[eid]={"reason":"Outside wake-up window","local_time":datetime.fromtimestamp(stamp,zone).isoformat()}
                 continue
             day=datetime.fromtimestamp(stamp,zone).date().isoformat()
             if day not in self.completed_days:
@@ -74,7 +92,8 @@ class MorningAlarms:
         fired=[(e,v) for e,v in candidates.items() if v["start"]<=now]
         available=fired or list(candidates.items())
         if not available:
-            self.status="Waiting for a valid alarm from someone home"
+            self.status=(f"No wake-up alarm in {start_time}–{end_time}" if self.ignored else
+                         "Waiting for a valid alarm from someone home")
             return None
         eid,event=min(available,key=lambda item:(item[1]["start"],item[0]))
         start=event["start"]

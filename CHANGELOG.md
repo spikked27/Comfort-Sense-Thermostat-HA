@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.2a1
+
+- Accept wake-up alarms only inside a configurable local-time window, default 03:00–12:00.
+- Ignore Samsung Clock bedtime/Sleep mode events outside that window, including restored holds.
+- Add an Advanced wake-up window editor without adding fields to ordinary morning setup.
+- Explain ignored alarms in Control status and Ready by diagnostics.
+- Preserve valid wake-up holds across the end of the allowed window; native schedules and early preheat remain independent.
+
 ## 0.5.1a1
 
 - Add Temperature Preset Comfort to the device Configuration controls.

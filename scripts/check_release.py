@@ -27,7 +27,7 @@ def main():
     translated=json.loads((COMPONENT/'translations/en.json').read_text(encoding='utf-8'))
     assert strings==translated
     for section in ['config','options']:
-        assert set(strings[section]['step'])=={'system','manage','room','review','init','schedules','schedule','schedule_settings','room_gains','advanced','presets','relay','average_pid','average_gains','schedule_details','morning','alarm_owner'}
+        assert set(strings[section]['step'])=={'system','manage','room','review','init','schedules','schedule','schedule_settings','room_gains','advanced','presets','relay','average_pid','average_gains','schedule_details','morning','alarm_owner','alarm_window'}
     for path in COMPONENT.rglob('*'):
         if path.is_file() and '__pycache__' not in path.parts:
             assert path.suffix in ('.py','.json','.png'), f'Unexpected integration artifact: {path.name}'
