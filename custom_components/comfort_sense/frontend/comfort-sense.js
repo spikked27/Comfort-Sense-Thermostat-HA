@@ -11,8 +11,8 @@ const tabs = [
   ["overview", "Overview"],
   ["rooms", "Rooms"],
   ["schedules", "Schedules"],
-  ["equipment", "Equipment"],
-  ["advanced", "Advanced"],
+  ["equipment", "Heating"],
+  ["advanced", "Preferences"],
 ];
 const css = `
 :host{display:block;height:100%;overflow:auto;color:var(--primary-text-color,#20292e);background:var(--primary-background-color,#f5f7f8);font-family:var(--paper-font-body1_-_font-family,system-ui,sans-serif);--cs-accent:var(--primary-color,#147d80);--cs-line:var(--divider-color,#dce3e6);--cs-muted:var(--secondary-text-color,#647278);--cs-surface:var(--card-background-color,#fff);--cs-soft:var(--secondary-background-color,#eef3f4);--cs-error:var(--error-color,#bd4545);--cs-warn:var(--warning-color,#a66512);font-size:14px;line-height:1.5}
@@ -22,6 +22,11 @@ const css = `
 @media(max-width:580px){.cardhead{flex-wrap:wrap}.cardhead h2{flex:1 1 210px}.cardhead .pill{white-space:normal}.brand{white-space:nowrap;font-size:15px}.top select{max-width:130px}.top .button{padding:4px;min-height:32px;min-width:32px}.top .logo{width:28px;height:28px}.footer>a{display:none}.footer .button{white-space:nowrap}.heading{flex-wrap:wrap}.heading>div{flex:1 1 230px}}
 .pill.error{color:var(--primary-text-color,#20292e)}.inlinewarn{color:var(--primary-text-color,#20292e);border-inline-start:3px solid var(--cs-warn);padding-inline-start:10px}
 :host{display:flex;flex-direction:column;overflow:hidden;height:100dvh}header{flex-shrink:0}main{flex:1;min-height:0;width:100%;overflow:auto;padding-bottom:35px}.footer{position:relative;flex-shrink:0;left:auto;right:auto;bottom:auto}
+/* Task-first layout: status, required inputs, optional features, detailed tuning. */
+main{max-width:1160px;padding:24px 24px 35px}.heading{margin-bottom:18px}h1{font-size:27px}.intro{font-size:13px}.card{padding:20px;border-radius:15px}.cardhead{margin-bottom:16px}.cardhead h2{font-size:17px}.status-banner{display:flex;align-items:center;gap:14px;padding:18px 20px;border:1px solid var(--cs-line);border-radius:15px;background:var(--cs-surface);margin-bottom:14px}.status-banner.error{border-inline-start:4px solid var(--cs-error)}.status-banner.good{border-inline-start:4px solid var(--cs-accent)}.status-banner.warning{border-inline-start:4px solid var(--cs-warn)}.status-banner h2{font-size:21px}.status-banner p{margin:4px 0 0;font-size:13px;color:var(--cs-muted)}.status-mark{width:32px;height:32px;display:grid;place-items:center;border-radius:10px;background:var(--cs-soft);font-weight:800;flex-shrink:0}.status-banner.error .status-mark{color:var(--cs-error)}.comfort-strip{display:grid;grid-template-columns:1fr 1fr 2fr;align-items:center;gap:18px;padding:18px 20px;background:var(--cs-surface);border:1px solid var(--cs-line);border-radius:15px;margin-bottom:14px}.comfort-strip .label{display:block;font-size:11px;letter-spacing:.06em}.comfort-strip strong{display:block;font-size:33px;line-height:1.2;letter-spacing:-1px;margin-top:4px}.comfort-strip strong small{font-size:17px;font-weight:500;color:var(--cs-muted);letter-spacing:0}.comfort-source b{font-size:18px;display:block;margin:3px 0}.comfort-source>span:last-child{font-size:12px}.readiness{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px}.readiness-item{background:var(--cs-surface);border:1px solid var(--cs-line);border-radius:12px;padding:12px 14px;text-align:left;color:inherit;min-width:0}.readiness-name{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--cs-muted);margin-bottom:5px}.readiness-item>strong{display:block;font-size:16px}.readiness-item>small{display:block;font-size:11px;color:var(--cs-muted);margin-top:4px}.readiness-dot{font-weight:800;color:var(--cs-muted)}.readiness-dot.good{color:var(--cs-accent)}.readiness-dot.error{color:var(--cs-error)}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:24px 0 12px}.section-heading h2{font-size:18px}.room-overview{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.compact-room{border:1px solid var(--cs-line);border-radius:13px;background:var(--cs-surface);padding:15px 17px}.compact-room.selected-room{border-color:var(--cs-accent)}.compact-room h3{margin:0;font-size:16px}.compact-room .row{flex-wrap:wrap;gap:8px}.compact-room .room-reading{font-size:28px;letter-spacing:-1px}.room-reading small{font-size:15px;color:var(--cs-muted);font-weight:500;margin-left:3px}.compact-room .muted{font-size:12px}.next-card{margin-top:16px}.next-card .cardhead{margin-bottom:10px}.next-card p{margin-bottom:0}.disclosure{margin-top:16px}.disclosure>summary{display:flex;align-items:center;gap:12px;color:inherit;list-style:none;min-height:30px}.disclosure>summary::-webkit-details-marker{display:none}.disclosure>summary::after{content:"⌄";margin-inline-start:auto;font-size:18px;color:var(--cs-muted)}.disclosure[open]>summary::after{content:"⌃"}.summary-value{font-size:12px;color:var(--cs-muted);font-weight:400}.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.detail-grid strong{display:block;font-size:14px}.attention-list{background:var(--cs-surface);border:1px solid var(--cs-line);border-radius:12px;margin-bottom:16px;padding:0 16px}.attention-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--cs-line)}.attention-item:last-child{border:0}.attention-item strong,.attention-item span{display:block}.attention-item strong{font-size:13px}.attention-item span{font-size:12px;color:var(--cs-muted);margin-top:3px}.attention-item .button{flex-shrink:0;font-size:12px}.page-summary{display:flex;align-items:center;gap:12px;margin-bottom:18px;color:var(--cs-muted);font-size:12px;flex-wrap:wrap}.room-editors{align-items:start}.room-snapshot{display:flex;align-items:center;justify-content:space-between;margin:-4px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--cs-line);color:var(--cs-muted);font-size:12px}.room-snapshot>span:first-child{font-size:22px;color:var(--primary-text-color);font-weight:650}.field-head{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-bottom:7px}.field-head>label{font-weight:650}.requirement{font-size:10px;font-weight:600;background:var(--cs-soft);color:var(--cs-muted);border-radius:5px;padding:3px 6px;white-space:nowrap}.input-status{display:block;font-size:12px;margin-top:7px;color:var(--cs-muted)}.input-status.good{color:var(--cs-accent)}.input-status.warning{color:var(--primary-text-color);font-weight:600}.room-options{padding-top:12px;margin-top:12px}.room-options summary{font-size:12px;font-weight:500}.room-editor details>summary{font-size:13px}.notice{background:var(--cs-soft);border-radius:10px;padding:12px 14px;margin:14px 0;font-size:13px}.notice>strong,.notice>span{display:block}.notice>span{font-size:12px;color:var(--cs-muted);margin-top:4px}.notice.warning{border-inline-start:3px solid var(--cs-warn)}.compact-copy,.routine-copy{font-size:14px;margin:0;color:var(--cs-muted)}.external-card{margin-top:16px}.external-card .plan span{display:block}.routine-summary .cardhead{margin-bottom:8px}.compact-empty{text-align:left;padding:16px;border:1px dashed var(--cs-line);border-radius:12px;background:var(--cs-surface);font-size:13px}.schedule-editors{align-items:start}.schedule-editor{margin-top:0}.alarm-card{margin-top:20px}.eyebrow{font-size:11px;display:block;color:var(--cs-muted);margin-bottom:4px}.mode-caption{font-size:12px;color:var(--cs-muted)}.preset-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.preset-tile{padding:14px;border-radius:11px;background:var(--cs-soft)}.preset-tile input{font-size:24px;font-weight:650}.preset-tile .field>span:first-child{font-size:12px;color:var(--cs-muted)}.footer{gap:12px}.footer .savehint{font-size:12px}details>summary{line-height:1.5}nav button{min-height:44px}
+@media(max-width:850px){.readiness{grid-template-columns:repeat(2,minmax(0,1fr))}.status-banner{align-items:flex-start;flex-wrap:wrap}.status-banner>.button{margin-left:46px}.preset-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:580px){main{padding:18px 16px 25px}.heading h1{font-size:24px}.heading{gap:8px}.heading>div{flex-basis:210px}.card{padding:17px}.status-banner{padding:14px;gap:10px}.status-banner h2{font-size:19px}.status-banner>.grow{flex:1 1 calc(100% - 44px)}.status-banner>.button{margin-left:42px;font-size:12px;min-height:38px;padding:8px 12px}.comfort-strip{grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px}.comfort-source{grid-column:1/-1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--cs-line)}.comfort-source b{font-size:14px;margin:0}.comfort-source .label{font-size:10px}.comfort-source>span:last-child{margin-left:auto;font-size:11px}.comfort-strip strong{font-size:29px}.readiness{gap:8px}.readiness-item{padding:10px 12px}.readiness-item strong{font-size:14px}.readiness-item small{font-size:10px}.section-heading{margin-top:20px}.section-heading>.muted{font-size:11px}.room-overview{grid-template-columns:1fr}.compact-room{padding:12px 14px}.attention-item{align-items:flex-start;flex-wrap:wrap;gap:5px}.attention-item .button{padding:3px 0;min-height:28px}.cardhead{gap:8px;flex-wrap:wrap}.cardhead h2{flex:initial}.summary-value{font-size:11px}.disclosure>summary{align-items:flex-start;flex-wrap:wrap;gap:5px}.disclosure>summary>span:first-child{flex:1 1 180px}.disclosure>summary>span.summary-value{flex:1 1 auto}.disclosure>summary::after{flex:0 0 15px}.disclosure>summary{min-height:35px}.detail-grid{grid-template-columns:1fr}.preset-grid{gap:10px}.preset-tile{padding:10px}.preset-tile input{font-size:22px}.top{padding:10px 16px}.top select{max-width:130px}nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;padding:0 8px;overflow:visible}nav button{font-size:11px;padding:12px 2px;letter-spacing:-.1px}.sub{display:none}}
+
 `;
 
 class SenseEntityPicker extends HTMLElement {
@@ -32,13 +37,28 @@ class SenseEntityPicker extends HTMLElement {
     this.entities = [];
     this.highlight = 0;
   }
-  configure({ entities, selected, kind, multiple, label }) {
+  configure({ entities, selected, kind, multiple, label, timeZone }) {
     this.entities = entities;
     this.selected = Array.isArray(selected) ? selected : selected ? [selected] : [];
     this.kind = kind;
+    this.timeZone = timeZone;
     this.multiple = multiple;
     this.label = label;
     this.render();
+  }
+  stateText(e) {
+    if (e.device_class === "timestamp" && Number.isFinite(Date.parse(e.state))) {
+      try {
+        return new Intl.DateTimeFormat(undefined, {
+          timeZone: this.timeZone,
+          dateStyle: "medium",
+          timeStyle: "short",
+        }).format(new Date(e.state));
+      } catch {
+        return e.state;
+      }
+    }
+    return `${e.state} ${e.unit || ""}`.trim();
   }
   allowed(e) {
     const domain = e.entity_id.split(".")[0];
@@ -54,7 +74,7 @@ class SenseEntityPicker extends HTMLElement {
     this.shadowRoot.innerHTML = `<style>${css}:host{height:auto;overflow:visible;font-size:13px}.picker{position:relative}.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}.chip{display:flex;align-items:center;gap:8px;max-width:100%;padding:7px 9px;background:var(--cs-soft);border-radius:9px}.chip span{overflow-wrap:anywhere}.chip small{display:block;color:var(--cs-muted)}.chip button{border:0;background:transparent;color:var(--cs-muted);font-size:20px;min-width:28px;min-height:28px}.options{position:absolute;z-index:20;top:100%;left:0;right:0;max-height:260px;overflow:auto;border:1px solid var(--cs-line);border-radius:10px;background:var(--cs-surface);box-shadow:0 12px 28px #0002;padding:5px;margin-top:5px}.option{display:block;width:100%;text-align:left;border:0;border-radius:7px;background:transparent;color:inherit;padding:10px}.option:hover,.option.active{background:var(--cs-soft)}.option small{display:block;color:var(--cs-muted);overflow-wrap:anywhere}.value{float:right;color:var(--cs-accent);font-size:12px}.offline{color:var(--cs-error)}input{font-size:14px}</style><div class="picker"><div class="chips">${this.selected
       .map((id) => {
         let e = this.entities.find((e) => e.entity_id === id);
-        return `<div class="chip"><span>${escapeHTML(e?.name || id)}<small>${escapeHTML(e ? `${e.state} ${e.unit}` : "Not available")}</small></span><button type="button" data-remove="${escapeHTML(id)}" aria-label="Remove ${escapeHTML(e?.name || id)}">×</button></div>`;
+        return `<div class="chip"><span>${escapeHTML(e?.name || id)}<small>${escapeHTML(e ? this.stateText(e) : "Not available")}</small></span><button type="button" data-remove="${escapeHTML(id)}" aria-label="Remove ${escapeHTML(e?.name || id)}">×</button></div>`;
       })
       .join(
         "",
@@ -119,7 +139,7 @@ class SenseEntityPicker extends HTMLElement {
       ? results
           .map(
             (e, i) =>
-              `<button type="button" role="option" aria-selected="false" id="option-${i}" class="option ${i === 0 ? "active" : ""}" data-id="${escapeHTML(e.entity_id)}"><span class="value ${["unavailable", "unknown"].includes(e.state) ? "offline" : ""}">${escapeHTML(e.state)} ${escapeHTML(e.unit)}</span><strong>${escapeHTML(e.name)}</strong><small>${escapeHTML(e.entity_id)}</small></button>`,
+              `<button type="button" role="option" aria-selected="false" id="option-${i}" class="option ${i === 0 ? "active" : ""}" data-id="${escapeHTML(e.entity_id)}"><span class="value ${["unavailable", "unknown"].includes(e.state) ? "offline" : ""}">${escapeHTML(this.stateText(e))}</span><strong>${escapeHTML(e.name)}</strong><small>${escapeHTML(e.entity_id)}</small></button>`,
           )
           .join("")
       : `<div class="empty">No matching ${escapeHTML(this.kind)} entities</div>`;
@@ -199,7 +219,7 @@ class ComfortSensePanel extends HTMLElement {
     }
   }
   header() {
-    return `<header><div class="top"><button class="button quiet mobilemenu" data-menu aria-label="Open Home Assistant sidebar">☰</button><img class="logo" src="/comfort_sense_static/icon.png" alt="Comfort Sense"><div><div class="brand">Comfort Sense</div><div class="sub">Comfort, room by room.</div></div><div class="grow"></div>${this.data?.entries.length ? `<select aria-label="Choose thermostat" data-thermostat>${this.data.entries.map((e) => `<option value="${escapeHTML(e.entry_id)}" ${e.entry_id === this.entry?.entry_id ? "selected" : ""}>${escapeHTML(e.name)}</option>`).join("")}</select>` : ""}<span class="pill version" id="top-mode">${this.entry?.config.shadow ? "Observation only" : "Active control"}</span></div><nav role="tablist" aria-label="Comfort Sense sections">${tabs.map(([id, label]) => `<button role="tab" aria-selected="${this.tab === id}" data-tab="${id}">${label}</button>`).join("")}</nav></header>`;
+    return `<header><div class="top"><button class="button quiet mobilemenu" data-menu aria-label="Open Home Assistant sidebar">☰</button><img class="logo" src="/comfort_sense_static/icon.png" alt="Comfort Sense"><div><div class="brand">Comfort Sense</div><div class="sub">Comfort, room by room.</div></div><div class="grow"></div>${this.data?.entries.length ? `<select aria-label="Choose thermostat" data-thermostat>${this.data.entries.map((e) => `<option value="${escapeHTML(e.entry_id)}" ${e.entry_id === this.entry?.entry_id ? "selected" : ""}>${escapeHTML(this.displayName(e.name))}</option>`).join("")}</select>` : ""}<span class="pill version" id="top-mode">${this.entry?.config.shadow ? "Observation only" : "Active control"}</span></div><nav role="tablist" aria-label="Comfort Sense sections">${tabs.map(([id, label]) => `<button role="tab" aria-selected="${this.tab === id}" data-tab="${id}">${label}</button>`).join("")}</nav></header>`;
   }
   render() {
     const focused = this.shadowRoot.activeElement?.dataset?.focus;
@@ -236,27 +256,277 @@ class ComfortSensePanel extends HTMLElement {
       target_origin: a.target_origin || e.live.target_origin,
     };
   }
+  inputHealth(ids, kind = "temperature") {
+    ids = (Array.isArray(ids) ? ids : [ids]).filter(Boolean);
+    const ready = ids.filter((id) => {
+      const live = this._hass?.states?.[id];
+      const row = this.data.entities.find((e) => e.entity_id === id);
+      const value = live?.state ?? row?.state;
+      if (value == null || ["", "unknown", "unavailable"].includes(value) || live?.attributes?.restored)
+        return false;
+      if (kind === "temperature")
+        return (
+          Number.isFinite(Number(value)) &&
+          ["°C", "°F", "K"].includes(live?.attributes?.unit_of_measurement ?? row?.unit)
+        );
+      if (["switch", "binary_sensor"].includes(kind)) return ["on", "off"].includes(value);
+      if (kind === "timestamp") return Number.isFinite(Date.parse(value));
+      return true;
+    }).length;
+    return { total: ids.length, ready, ok: !!ids.length && ready === ids.length };
+  }
+  roomHealth(room) {
+    const health = this.inputHealth(room.temperature_sensors);
+    const current = this.entry.rooms.find((r) => r.id === room.id);
+    const saved = this.entry.config.rooms.find((r) => r.id === room.id);
+    if (
+      current &&
+      saved &&
+      JSON.stringify(saved.temperature_sensors) === JSON.stringify(room.temperature_sensors) &&
+      current.temperature == null
+    )
+      return { ...health, ready: 0, ok: false };
+    return health;
+  }
+  displayName(name = this.entry.name) {
+    return name.replace(/^Comfort\s?Sense[-\s]*/i, "").trim() || name;
+  }
+  setupTiles() {
+    const c = this.entry.config,
+      heater = this.inputHealth(c.heater, "switch"),
+      rooms = c.rooms.filter((r) => this.roomHealth(r).ready > 0).length;
+    const occupancy = c.rooms.filter((r) => this.inputHealth(r.occupancy_sensors, "binary_sensor").ok).length;
+    const outdoor = this.inputHealth(c.outdoor_sensor);
+    outdoor.ok = outdoor.ok && this.entry.live.outdoor != null;
+    return [
+      {
+        name: "Heater",
+        value: heater.ok ? "Connected" : "Offline",
+        note: "Required for heat",
+        ok: heater.ok,
+        tab: "equipment",
+      },
+      {
+        name: "Room temperatures",
+        value: `${rooms} of ${c.rooms.length} ready`,
+        note: "Required per room",
+        ok: rooms === c.rooms.length,
+        tab: "rooms",
+      },
+      {
+        name: "Occupancy",
+        value: occupancy ? `${occupancy} ${occupancy === 1 ? "room" : "rooms"} connected` : "Not connected",
+        note: "For automatic room selection",
+        ok: occupancy > 0,
+        optional: true,
+        tab: "rooms",
+      },
+      {
+        name: "Outdoor",
+        value: outdoor.ok
+          ? `${this.temp(this.entry.live.outdoor)}${this.data.unit}`
+          : c.outdoor_sensor
+            ? "Unavailable"
+            : "Not connected",
+        note: "For thermal learning",
+        ok: outdoor.ok,
+        optional: true,
+        tab: "equipment",
+      },
+    ];
+  }
+  operatingStatus() {
+    const c = this.entry.config,
+      l = this.live();
+    if (!this.inputHealth(c.heater, "switch").ok)
+      return {
+        title: "Heating unavailable",
+        detail: "The heater is offline. Control and thermal learning are paused.",
+        label: "Check heater connection",
+        tab: "equipment",
+        tone: "error",
+      };
+    const ready = c.rooms.filter((r) => this.roomHealth(r).ready > 0).length;
+    if (!ready)
+      return {
+        title: "Room temperature needed",
+        detail: "Connect a working room temperature sensor before heating can run.",
+        label: "Check room sensors",
+        tab: "rooms",
+        tone: "error",
+      };
+    if (c.shadow)
+      return {
+        title: "Observation only",
+        detail: "Room selection is running. Comfort Sense is not switching the heater.",
+        label: "Review operating mode",
+        tab: "equipment",
+        tone: "info",
+      };
+    if (l.mode !== "heat")
+      return {
+        title: "Thermostat is off",
+        detail: "Your settings are saved. Select Heat when you want heating control.",
+        label: "Open thermostat controls",
+        controls: true,
+        tone: "info",
+      };
+    if (/Startup/i.test(l.reason || ""))
+      return {
+        title: "Waiting for heater confirmation",
+        detail: l.reason,
+        label: "Check heater status",
+        tab: "equipment",
+        tone: "info",
+      };
+    if (/protection|limit|unavailable|failed/i.test(l.reason || ""))
+      return {
+        title: "Heating paused",
+        detail: l.reason,
+        label: "Check heating settings",
+        tab: "equipment",
+        tone: "warning",
+      };
+    return {
+      title: l.observed ? "Heating" : "Maintaining comfort",
+      detail: l.observed
+        ? `Warming ${l.source} toward ${this.temp(l.target)}${this.data.unit}.`
+        : `Following ${l.source}. Heating will run when needed.`,
+      label: "Thermostat controls",
+      controls: true,
+      tone: "good",
+    };
+  }
   overview() {
     const e = this.entry,
       l = this.live(),
-      unit = this.data.unit,
-      critical = e.issues.filter((i) => i.level === "error").length;
+      status = this.operatingStatus(),
+      unit = this.data.unit;
+    const attention = e.issues.filter((i) => i.level !== "info" && i.title !== "Heater disconnected");
     return (
       this.heading(
-        "Your comfort, at a glance",
-        `${escapeHTML(e.name)} · ${e.config.shadow ? "Observing your home" : "Heating control enabled"}`,
-        critical
-          ? `<button class="button quiet" data-tab="${e.issues.find((i) => i.level === "error").tab}">${this.pill(e.issues.find((i) => i.level === "error").title + (critical > 1 ? ` +${critical - 1}` : ""), "error")} →</button>`
-          : this.pill("Inputs connected", "good"),
+        this.displayName(),
+        "Home comfort",
+        this.pill(e.config.shadow ? "Observation mode" : "Heating control"),
       ) +
-      `<div class="grid"><section class="card"><div class="cardhead"><h2>Now following</h2>${this.pill(l.source || "Unavailable", "good")}</div><div class="metrics"><div><div class="label">ROOM TEMPERATURE</div><div class="metric">${this.temp(l.temperature)}<small>${unit}</small></div></div><div><div class="label">CURRENT TARGET</div><div class="metric">${this.temp(l.target)}<small>${unit}</small></div></div></div><p class="targetline">Target from <strong>${escapeHTML(l.target_origin || l.preset + " preset")}</strong></p><div class="row wrap">${this.pill((l.mode || "off").toUpperCase())}${this.pill((l.preset || "comfort") + " preset")}${this.pill(e.config.shadow ? "No heater commands" : "Active output", e.config.shadow ? "warning" : "good")}</div><div class="divider"></div><div class="row between"><span>Heat demand</span><strong>${l.demand ?? 0}%</strong></div><div class="track"><span style="width:${Math.max(0, Math.min(100, l.demand || 0))}%"></span></div><div class="row between space"><span class="muted">Heater feedback</span><strong>${l.observed === null ? "Unavailable" : l.observed ? "On" : "Off"}</strong></div><p class="state-note">${escapeHTML(l.reason)}</p><div class="row between space"><span class="muted">Outdoor temperature</span><strong>${this.temp(e.live.outdoor)}${unit}</strong></div><p class="state-note">Outdoor compensation · ${escapeHTML(e.live.outdoor_compensation?.status || "Waiting for accepted model")}${e.live.outdoor_compensation?.active ? ` · ${e.live.outdoor_compensation.applied_duty_percent}% feedforward` : ""}</p><button class="button quiet" data-controls>Open thermostat controls →</button><div class="preview"><b>${e.config.shadow ? "Observation only" : "Control status"}</b><br>${e.config.shadow ? "Room selection and planning are visible. Heater switching is disabled." : "Demand is a requested share of each heating cycle; protection settings may delay output."}</div></section><section class="card"><div class="cardhead"><h2>Setup health</h2>${this.pill(`${e.config.rooms.length} rooms`)}</div>${e.issues.length ? e.issues.map((i) => `<div class="issue ${i.level}"><div class="symbol" aria-hidden="true">${i.level === "error" ? "!" : i.level === "warning" ? "!" : "i"}</div><div><strong>${escapeHTML(i.title)}</strong><p>${escapeHTML(i.detail)}</p></div><button class="button quiet" data-tab="${i.tab}">Review</button></div>`).join("") : `<div class="empty"><h2>Ready for comfort</h2><p>Room temperatures and heating inputs are connected.</p></div>`}</section></div><div class="heading space"><div><h2>Your rooms</h2></div><button class="button quiet" data-tab="rooms">Manage rooms →</button></div><div class="grid three">${e.config.rooms
+      `<section class="status-banner ${status.tone}" aria-label="Operating status"><div class="status-mark" aria-hidden="true">${status.tone === "error" ? "!" : status.tone === "good" ? "✓" : "i"}</div><div class="grow"><h2>${escapeHTML(status.title)}</h2><p>${escapeHTML(status.detail)}</p></div><button class="button primary" ${status.controls ? "data-controls" : `data-tab="${status.tab}"`}>${status.label} →</button></section>
+      <section class="comfort-strip" aria-label="Current comfort"><div><span class="label">CURRENT</span><strong>${this.temp(l.temperature)}<small>${unit}</small></strong></div><div><span class="label">TARGET</span><strong>${this.temp(l.target)}<small>${unit}</small></strong></div><div class="comfort-source"><span class="label">FOLLOWING</span><b>${escapeHTML(l.source || "Unavailable")}</b><span class="muted">${escapeHTML(l.target_origin || l.preset + " preset")}</span></div></section>
+      <div class="readiness" aria-label="Input readiness">${this.setupTiles()
+        .map(
+          (t) =>
+            `<button class="readiness-item" data-tab="${t.tab}"><span class="readiness-name">${t.name}<span class="readiness-dot ${t.ok ? "good" : t.optional ? "optional" : "error"}" aria-label="${t.ok ? "Ready" : t.optional ? "Optional input missing" : "Needs attention"}">${t.ok ? "✓" : t.optional ? "—" : "!"}</span></span><strong>${escapeHTML(t.value)}</strong><small>${t.note}</small></button>`,
+        )
+        .join("")}</div>
+      ${attention.length ? `<section class="attention-list">${attention.map((i) => `<div class="attention-item"><div><strong>${escapeHTML(i.title)}</strong><span>${escapeHTML(i.detail)}</span></div><button class="button quiet" data-tab="${i.tab}">${i.tab === "rooms" ? "Check sensors" : i.tab === "schedules" ? "Review schedules" : "Check input"} →</button></div>`).join("")}</section>` : ""}
+      <div class="section-heading"><h2>Your rooms</h2><button class="button quiet" data-tab="rooms">Edit rooms →</button></div><div class="room-overview">${e.config.rooms
         .map((r) => {
-          let live = e.rooms.find((x) => x.id === r.id) || {};
-          return `<section class="card"><div class="row between"><h2>${escapeHTML(r.name)}</h2>${this.pill(live.active ? "Following" : "Monitoring", live.active ? "good" : "")}</div><div class="roomstat"><div class="roomtemp">${this.temp(live.temperature)}<small> ${unit}</small></div><div class="grow right"><strong>${live.occupancy || 0}%</strong><div class="label">Occupancy history</div></div></div><div class="track"><span style="width:${live.occupancy || 0}%"></span></div><div class="divider"></div>${this.pill(r.tuning_mode === "manual" ? "Manual PID" : live.learned ? "Learned tuning" : "Learning", live.learned ? "good" : "")}<p class="state-note">${escapeHTML(live.learning)}</p></section>`;
+          const live = e.rooms.find((x) => x.id === r.id) || {};
+          return `<section class="compact-room ${live.active ? "selected-room" : ""}"><div class="row between"><h3>${escapeHTML(r.name)}</h3>${this.pill(live.active ? "Following" : "Monitoring", live.active ? "good" : "")}</div><div class="row between"><strong class="room-reading">${this.temp(live.temperature)}<small>${unit}</small></strong><span class="muted">${live.occupancy || 0}% occupancy</span></div></section>`;
         })
+        .join("")}</div>
+      <section class="card next-card"><div class="cardhead"><h2>Next comfort</h2><button class="button quiet" data-tab="schedules">Edit routine →</button></div>${this.planPreview()}<p class="state-note">${escapeHTML(l.morning)}</p></section>
+      <details class="card disclosure diagnostics"><summary><span>Heating & learning details</span><span class="summary-value">${l.demand ?? 0}% demand</span></summary><div class="detail-grid"><div><span class="label">Heat demand</span><strong>${l.demand ?? 0}%</strong></div><div><span class="label">Observed heater</span><strong>${l.observed == null ? "Unavailable" : l.observed ? "On" : "Off"}</strong></div><div><span class="label">Outdoor compensation</span><strong>${escapeHTML(e.live.outdoor_compensation?.status || "Waiting for model")}</strong></div><div><span class="label">Control reason</span><strong>${escapeHTML(l.reason)}</strong></div></div><p class="hint">Demand is a requested share of each heating cycle, not a measurement of furnace runtime.</p>${e.rooms.map((r) => `<p class="state-note"><strong>${escapeHTML(e.config.rooms.find((x) => x.id === r.id)?.name || "Room")}</strong> · ${escapeHTML(r.learning)}</p>`).join("")}</details>`
+    );
+  }
+  selectionNote(ids, kind = "temperature") {
+    const h = this.inputHealth(ids, kind);
+    if (!h.total) return "";
+    return `<span class="input-status ${h.ok ? "good" : "warning"}">${h.ok ? "✓ Connected" : h.ready ? `${h.ready} of ${h.total} reporting` : "! Waiting for a valid reading"}</span>`;
+  }
+  minutes(label, path, hint = "", min = 0.5, max = 60) {
+    return `<label class="field"><span>${label}</span><input class="input" data-field="${path}" data-scale="60" type="number" value="${Number(this.value(path)) / 60}" min="${min}" max="${max}" step="0.5">${hint ? `<span class="hint">${hint}</span>` : ""}</label>`;
+  }
+  rooms() {
+    const ready = this.draft.rooms.filter((r) => this.roomHealth(r).ready > 0).length;
+    return (
+      this.heading(
+        "Rooms",
+        "Give each room a temperature sensor. Add occupancy to let Auto follow you.",
+        `<button class="button primary" data-add-room>+ Add room</button>`,
+      ) +
+      `<div class="page-summary">${this.pill(`${ready} of ${this.draft.rooms.length} rooms ready`, ready === this.draft.rooms.length ? "good" : "warning")}<span>Temperature is required · occupancy is optional</span></div>
+      <div class="grid room-editors">${this.draft.rooms
+        .map((r, i) => {
+          const live = this.entry.rooms.find((x) => x.id === r.id) || {},
+            health = this.roomHealth(r);
+          return `<section class="card room-editor"><div class="cardhead"><h2>${escapeHTML(r.name || "New room")}</h2>${this.pill(health.ready ? "Temperature ready" : r.temperature_sensors.length ? "Sensor unavailable" : "Add temperature", health.ready ? "good" : "warning")}</div><div class="room-snapshot"><span>${this.temp(live.temperature)}${this.data.unit}</span><span>${live.occupancy || 0}% occupancy history</span></div>${this.field("Room name", `rooms.${i}.name`)}<div class="space">${this.picker("Temperature sensors", `rooms.${i}.temperature_sensors`, "temperature", true, "Select original room sensors; multiple readings are combined.", "Required")}${this.selectionNote(r.temperature_sensors)}</div><div class="space">${this.picker("Occupancy sensors", `rooms.${i}.occupancy_sensors`, "binary_sensor", true, "Without occupancy, the room can still contribute to Average.", "Optional")}${this.selectionNote(r.occupancy_sensors, "binary_sensor")}</div><details ${r.tuning_mode === "manual" ? "open" : ""}><summary>Room tuning · ${r.tuning_mode === "auto" ? "Automatic" : "Manual"}</summary>${this.select("PID tuning", `rooms.${i}.tuning_mode`, { auto: "Automatic · recommended", manual: "Manual PID values" })}${r.tuning_mode === "manual" ? this.gains(`rooms.${i}.`) : `<p class="hint">Learns from normal heating. Fallback gains are used until a model is accepted.</p>`}</details><details class="room-options"><summary>Room options</summary><button class="button danger" data-remove-room="${i}" aria-label="Remove ${escapeHTML(r.name)}">Remove room</button></details></section>`;
+        })
+        .join("")}</div>
+      <details class="card disclosure"><summary><span>Room behavior</span><span class="summary-value">${escapeHTML(this.draft.reaction_time)} · ${this.draft.occupancy_margin}% grouping</span></summary><div class="field"><span>Reaction speed</span><div class="segments">${[
+        ["fast", "Fast", "10-minute history"],
+        ["medium", "Medium", "30-minute history"],
+        ["slow", "Slow", "60-minute history"],
+      ]
+        .map(
+          ([id, n, h]) =>
+            `<button data-reaction="${id}" aria-pressed="${this.draft.reaction_time === id}"><strong>${n}</strong><small>${h}</small></button>`,
+        )
         .join(
           "",
-        )}</div><section class="card space"><div class="cardhead"><h2>Next comfort</h2><button class="button quiet" data-tab="schedules">Manage schedules →</button></div>${this.planPreview()}<p class="state-note">${escapeHTML(l.morning)}</p></section>`
+        )}</div></div><div class="space">${this.number("Group similarly occupied rooms (%)", "occupancy_margin", "Rooms within this occupancy margin are averaged together.", 'min="0" max="100"')}</div><button class="button quiet" data-tab="equipment">Room temperature protection →</button></details>`
+    );
+  }
+  externalSchedules() {
+    const schedules = this.entry.external_schedules;
+    if (!schedules.length) return "";
+    const names = {
+      mon: "Monday",
+      tue: "Tuesday",
+      wed: "Wednesday",
+      thu: "Thursday",
+      fri: "Friday",
+      sat: "Saturday",
+      sun: "Sunday",
+    };
+    const overlaps = [
+      ...new Set(
+        schedules.flatMap((s, i) =>
+          schedules.slice(i + 1).flatMap((t) => s.days.filter((day) => t.days.includes(day))),
+        ),
+      ),
+    ];
+    return `<section class="card external-card"><div class="cardhead"><h2>External preset schedules</h2>${this.pill(`${schedules.length} connected`, overlaps.length ? "warning" : "")}</div>${overlaps.length ? `<div class="notice warning"><strong>${overlaps.map((d) => names[d] || d).join(", ")} has overlapping schedules</strong><span>Both schedules can send preset changes on the same day.</span></div>` : ""}<p class="compact-copy">These schedules also change the target. Boost uses the ${this.draft.boost_minutes}-minute thermostat timer.</p><details><summary>View external schedules</summary>${schedules.map((s) => `<div class="plan"><strong>${escapeHTML(s.name)}</strong><span class="muted">${escapeHTML(s.days.map((d) => names[d] || d).join(", "))}</span><span class="state-note">${escapeHTML(s.timeslots.join(" / "))}</span></div>`).join("")}</details></section>`;
+  }
+  morningSummary() {
+    if (!this.draft.morning_enabled)
+      return "Optional · use phone wake-up times instead of fixed morning times.";
+    if (!this.draft.alarm_sensors.length) return "Choose a phone’s next-alarm sensor to finish setup.";
+    return `${escapeHTML(this.sourceName(this.draft.morning_source))} to ${this.temp(this.draft.morning_target)}${this.data.unit} by the earliest wake alarm · hold ${this.draft.morning_duration} min`;
+  }
+  schedules() {
+    return (
+      this.heading(
+        "Schedules",
+        "Choose when you want comfort. Weekly times and phone alarms can work together.",
+      ) +
+      `<section class="card routine-summary"><div class="cardhead"><h2>Your routine</h2>${this.pill(`${this.draft.schedules.length} weekly · ${this.draft.morning_enabled ? "alarms on" : "alarms off"}`)}</div>${this.planPreview()}<p class="state-note">${escapeHTML(this.entry.live.morning)}</p></section>${this.externalSchedules()}
+      <div class="section-heading"><div><h2>Weekly comfort</h2><span class="hint">Connect native Home Assistant Schedule helpers.</span></div><button class="button" data-add-schedule>+ Connect schedule</button></div>
+      ${this.draft.schedules.length ? `<div class="grid schedule-editors">${this.draft.schedules.map((s, i) => `<details class="card disclosure schedule-editor" ${s.name && s.entity_id ? "" : "open"}><summary><span>${escapeHTML(s.name || "New weekly schedule")}</span><span class="summary-value">${this.temp(s.target)}${this.data.unit} · ${escapeHTML(this.sourceName(s.source))}</span></summary>${this.field("Schedule name", `schedules.${i}.name`)}<div class="space">${this.picker("Schedule helper", `schedules.${i}.entity_id`, "schedule", false, "Edit its weekly time blocks in Home Assistant.", "Required")}</div>${s.weekly && !s.entity_id ? `<p class="notice">Migrated weekly times are preserved until you select a helper.</p>` : ""}<div class="fields space">${this.select("Rooms", `schedules.${i}.source`, this.sources())}${this.number(`Target (${this.data.unit})`, `schedules.${i}.target`)}</div>${this.toggle("Ready when the block starts", `schedules.${i}.preheat`, "Start warming early enough to aim for the target at the block’s start.")}<details><summary>Priority & block-data settings</summary><div class="fields">${this.number("Priority", `schedules.${i}.priority`, "Higher wins when connected schedules overlap.", 'min="0" max="100"')}${this.select("Additional block-data units", `schedules.${i}.data_temperature_unit`, { "°C": "Celsius", "°F": "Fahrenheit" })}</div></details><button class="button quiet danger space" data-remove-schedule="${i}">Remove schedule</button></details>`).join("")}</div>` : `<div class="empty compact-empty">No weekly helper connected. This is optional if you use phone alarms or another scheduler.</div>`}
+      <p><a class="help-link" href="/config/helpers">Open HA’s weekly schedule editor →</a></p>
+      <section class="card alarm-card"><div class="cardhead"><h2>Phone wake-up alarms</h2>${this.pill(this.draft.morning_enabled ? "Enabled" : "Optional", this.draft.morning_enabled ? "good" : "")}</div><p class="routine-copy">${this.morningSummary()}</p><details ${this.draft.morning_enabled && !this.draft.alarm_sensors.length ? "open" : ""}><summary>${this.draft.morning_enabled ? "Edit morning alarms" : "Set up morning alarms"}</summary>${this.toggle("Follow phone wake-up alarms", "morning_enabled", "Use the earliest valid alarm from the selected phones.")}${this.draft.morning_enabled ? `<div class="space">${this.picker("Next-alarm sensors", "alarm_sensors", "timestamp", true, "Choose each phone’s next-alarm timestamp sensor.", "Required when enabled")}</div><div class="fields space">${this.number(`Ready-by temperature (${this.data.unit})`, "morning_target")}${this.select("Warm these rooms", "morning_source", this.sources())}</div><details><summary>Wake-up window & people · ${escapeHTML(this.draft.alarm_window_start)}–${escapeHTML(this.draft.alarm_window_end)}</summary><div class="fields">${this.field("Accept alarms after", "alarm_window_start", "time")}${this.field("Accept alarms before", "alarm_window_end", "time")}${this.number("Morning hold (minutes)", "morning_duration", "Maintain comfort after the alarm.", 'min="1" max="240"')}</div><p class="hint">Alarms outside this window are ignored, including bedtime events.</p>${this.draft.alarm_sensors.map((e) => `<div class="space">${this.picker(`Person for ${escapeHTML(this.data.entities.find((x) => x.entity_id === e)?.name || e)}`, `alarm_owners.${e}`, "person", false, "Skip this phone when its person is away.", "Optional")}</div>`).join("")}</details>` : ""}</details></section>`
+    );
+  }
+  equipment() {
+    const heater = this.inputHealth(this.draft.heater, "switch"),
+      outdoor = this.inputHealth(this.draft.outdoor_sensor),
+      home = this.inputHealth(this.draft.home_sensor, "presence");
+    return (
+      this.heading("Heating", "Connect the heating zone first. Add context for learning and Away mode.") +
+      `<section class="card heater-card"><div class="cardhead"><div><span class="eyebrow">Required for heating</span><h2>Heater connection</h2></div>${this.pill(heater.ok ? "Connected" : "Offline", heater.ok ? "good" : "warning")}</div>${this.picker("Heater relay", "heater", "switch", false, "The switch that controls this thermostat’s heating zone.", "Required")}${this.selectionNote(this.draft.heater, "switch")}${!heater.ok ? `<div class="notice warning"><strong>Check the heater device</strong><span>The selected relay needs to report On or Off before heating control and learning can run.</span></div>` : ""}<div class="divider"></div><h3>Operating mode</h3>${this.toggle("Observation only (Shadow mode)", "shadow", "Enabled: observe rooms without sending heater commands.")}<p class="mode-caption">${this.draft.shadow ? "Observation only · your existing controller remains responsible for heat." : "Active control · stop other controllers of this relay before saving."}</p></section>
+      <div class="section-heading"><h2>Optional inputs</h2><span class="muted">Enable the features you need</span></div><div class="grid"><section class="card"><div class="cardhead"><h2>Outdoor temperature</h2>${this.pill(outdoor.ok ? "Connected" : "For learning", outdoor.ok ? "good" : "")}</div>${this.picker("Outdoor temperature", "outdoor_sensor", "temperature", false, "Needed for thermal learning; basic temperature control can work without it.", "For learning")}${this.selectionNote(this.draft.outdoor_sensor)}</section><section class="card"><div class="cardhead"><h2>Home presence</h2>${this.pill(home.ok ? "Connected" : "Optional", home.ok ? "good" : "")}</div>${this.picker("Home presence", "home_sensor", "presence", false, "Use Away temperature after nobody is home.", "Optional")}${this.selectionNote(this.draft.home_sensor, "presence")}</section></div>
+      <details class="card disclosure protection-settings"><summary><span>Protection & cycling</span><span class="summary-value">${this.draft.min_on_seconds / 60} min on · ${this.draft.min_off_seconds / 60} min off</span></summary><div class="fields">${this.minutes("Minimum on time (minutes)", "min_on_seconds", "Complete a heating run, except when a safety cutoff takes priority.")}${this.minutes("Minimum off time (minutes)", "min_off_seconds", "Wait between runs, including after restart.")}${this.minutes("Heating cycle (minutes)", "pwm_seconds", "Must cover the minimum on + off time.", 2, 120)}${this.number(`Room protection buffer (${this.data.unit})`, "room_buffer", "One shared warm/cold buffer around the target. Set 0 to disable.", 'min="0"')}${this.number(`Absolute temperature limit (${this.data.unit})`, "max_temperature", "Safety cutoff above all preset targets.")}</div></details>
+      <details class="card disclosure"><summary><span>Thermostat identity</span><span class="summary-value">${escapeHTML(this.draft.name)}</span></summary>${this.field("Thermostat name", "name")}</details>`
+    );
+  }
+  advanced() {
+    const manual =
+      this.draft.rooms.filter((r) => r.tuning_mode === "manual").length +
+      (this.draft.average_tuning_mode === "manual" ? 1 : 0);
+    return (
+      this.heading("Preferences", "Preset temperatures are ready to use. Fine-tuning is optional.") +
+      `<section class="card"><div class="cardhead"><h2>Temperature presets</h2>${this.pill("Used by the thermostat and schedules")}</div><div class="preset-grid">${["comfort", "sleep", "away", "boost"].map((p) => `<div class="preset-tile">${this.number(`${p[0].toUpperCase() + p.slice(1)} (${this.data.unit})`, `${p}_temperature`)}</div>`).join("")}</div><details><summary>Preset behavior · Boost ${this.draft.boost_minutes} min</summary><div class="fields">${this.number("Boost duration (minutes)", "boost_minutes", "External preset schedules use this timer too.", 'min="1" max="240"')}${this.select("Sleep room", "sleep_room", { "": "Use thermostat source", ...Object.fromEntries(this.draft.rooms.map((r) => [r.id, r.name])) })}${this.number("Away delay (minutes)", "away_delay_minutes", "Wait before using the Away temperature.", 'min="0" max="180"')}</div></details></section>
+      <details class="card disclosure" ${this.draft.average_tuning_mode === "manual" ? "open" : ""}><summary><span>PID tuning & learning</span><span class="summary-value">${manual ? `${manual} manual controllers` : "All controllers automatic"}</span></summary><div class="notice"><strong>Automatic is the default</strong><span>Room and Average controllers learn independently from normal heating.</span></div>${this.select("Average PID tuning", "average_tuning_mode", { auto: "Automatic · recommended", manual: "Manual PID values" })}${this.draft.average_tuning_mode === "manual" ? this.gains("average_") : `<p class="state-note">${escapeHTML(this.entry.live.average_learning)}</p>`}<button class="button quiet" data-tab="rooms">Individual room tuning →</button></details>
+      <details class="card disclosure"><summary><span>Advanced sensor & warm-up settings</span><span class="summary-value">Usually no changes needed</span></summary><div class="fields">${this.number("Temperature timeout (minutes)", "sensor_timeout_minutes", "Exclude sensors that have stopped reporting.", 'min="5" max="1440"')}${this.number("Maximum preheat (minutes)", "max_preheat_minutes", "Limit how early warm-up may begin.", 'min="15" max="480"')}${this.number(`Fallback heating rate (${this.data.unit}/hour)`, "fallback_heat_rate", "Estimate used before a thermal model is accepted.")}</div></details>`
     );
   }
   planPreview() {
@@ -271,7 +541,11 @@ class ComfortSensePanel extends HTMLElement {
       .join("");
   }
   sourceName(id) {
-    return this.draft.rooms?.find((r) => r.id === id)?.name || id;
+    return (
+      this.draft.rooms?.find((r) => r.id === id)?.name ||
+      { Auto: "Occupied rooms", Average: "Whole-home average" }[id] ||
+      id
+    );
   }
   field(label, path, type = "text", hint = "", attrs = "") {
     const value = this.value(path);
@@ -291,10 +565,10 @@ class ComfortSensePanel extends HTMLElement {
   toggle(label, path, hint = "") {
     return `<label class="toggle"><span><strong>${label}</strong>${hint ? `<span class="hint">${hint}</span>` : ""}</span><input type="checkbox" role="switch" aria-label="${label}" data-field="${path}" ${this.value(path) ? "checked" : ""}></label>`;
   }
-  picker(label, path, kind, multiple = false, hint = "") {
+  picker(label, path, kind, multiple = false, hint = "", requirement = "") {
     const id = `picker-${this.pick++}`;
-    this.pickers.push({ id, path, kind, multiple, label });
-    return `<div class="field"><label id="${id}-label">${label}</label><sense-entity-picker id="${id}" aria-labelledby="${id}-label"></sense-entity-picker>${hint ? `<span class="hint">${hint}</span>` : ""}</div>`;
+    this.pickers.push({ id, path, kind, multiple, label, timeZone: this._hass?.config?.time_zone });
+    return `<div class="field"><div class="field-head"><label id="${id}-label">${label}</label>${requirement ? `<span class="requirement">${requirement}</span>` : ""}</div><sense-entity-picker id="${id}" aria-labelledby="${id}-label"></sense-entity-picker>${hint ? `<span class="hint">${hint}</span>` : ""}</div>`;
   }
   sources(blank = false) {
     return {
@@ -306,54 +580,6 @@ class ComfortSensePanel extends HTMLElement {
   }
   gains(prefix) {
     return `<div class="fields space">${this.number("Proportional · Kp", prefix + "kp", "", 'min="0" max="2"')}${this.number("Integral · Ki", prefix + "ki", "", 'min="0" max="0.001"')}${this.number("Derivative · Kd", prefix + "kd", "", 'min="0" max="3600"')}</div><span class="hint">Controller units: heat fraction per °C, per °C·second, and seconds per °C.</span>`;
-  }
-  rooms() {
-    return (
-      this.heading(
-        "Make every room count",
-        "Choose the sensors. Comfort Sense handles the room selection.",
-        `<button class="button primary" data-add-room>+ Add room</button>`,
-      ) +
-      `<section class="card"><div class="cardhead"><h2>How quickly should rooms react?</h2>${this.pill("30-minute history is the default")}</div><div class="segments">${[
-        ["fast", "Fast", "10-minute history"],
-        ["medium", "Medium", "30-minute history"],
-        ["slow", "Slow", "60-minute history"],
-      ]
-        .map(
-          ([id, n, h]) =>
-            `<button data-reaction="${id}" aria-pressed="${this.draft.reaction_time === id}"><strong>${n}</strong><small>${h}</small></button>`,
-        )
-        .join(
-          "",
-        )}</div><div class="fields space">${this.number("Group similarly occupied rooms (%)", "occupancy_margin", "Rooms within this occupancy margin are averaged together.", 'min="0" max="100"')}${this.number(`Room protection buffer (${this.data.unit})`, "room_buffer", "One shared limit above and below the target. Set 0 to disable.", 'min="0"')}</div></section><div class="grid space">${this.draft.rooms.map((r, i) => `<section class="card"><div class="roomhead">${this.field("Room name", `rooms.${i}.name`)}<button class="button quiet danger" data-remove-room="${i}" aria-label="Remove ${escapeHTML(r.name)}">Remove</button></div><div class="space">${this.picker("Temperature sensors", `rooms.${i}.temperature_sensors`, "temperature", true, "Required · multiple sensors within a room are averaged.")}</div><div class="space">${this.picker("Occupancy sensors", `rooms.${i}.occupancy_sensors`, "binary_sensor", true, "Optional · no occupancy sensors means this room contributes to Average.")}</div><details ${r.tuning_mode === "manual" ? "open" : ""}><summary>Room tuning</summary>${this.select("PID tuning", `rooms.${i}.tuning_mode`, { auto: "Automatic · recommended", manual: "Manual PID values" })}${r.tuning_mode === "manual" ? this.gains(`rooms.${i}.`) : `<p class="state-note">Learns from valid heating observations. Conservative fallback gains are used until a model is accepted.</p>`}</details></section>`).join("")}</div>`
-    );
-  }
-  schedules() {
-    return (
-      this.heading(
-        "Comfort on your schedule",
-        "Set when you want to be comfortable. Warm-up starts earlier when needed.",
-      ) +
-      `<section class="card"><div class="cardhead"><h2>Morning alarms</h2>${this.pill(this.draft.morning_enabled ? "Enabled" : "Optional", this.draft.morning_enabled ? "good" : "")}</div>${this.toggle("Follow phone wake-up alarms", "morning_enabled", "Use the earliest valid alarm from the selected phones.")}${this.draft.morning_enabled ? `<div class="space">${this.picker("Next-alarm sensors", "alarm_sensors", "timestamp", true, "Choose timestamp sensors from your phones, filtered to their clock apps.")}</div><div class="fields space">${this.number(`Ready-by temperature (${this.data.unit})`, "morning_target")}${this.select("Warm these rooms", "morning_source", this.sources())}${this.field("Accept alarms after", "alarm_window_start", "time")}${this.field("Accept alarms before", "alarm_window_end", "time")}</div><div class="preview">Wake alarms only · ${escapeHTML(this.draft.alarm_window_start)}–${escapeHTML(this.draft.alarm_window_end)}. Bedtime events outside this window are ignored.</div><details><summary>Hold duration & people</summary>${this.number("Morning hold (minutes)", "morning_duration", "Maintain comfort after the alarm.", 'min="1" max="240"')}${this.draft.alarm_sensors.map((e) => `<div class="space">${this.picker(`Person for ${escapeHTML(this.data.entities.find((x) => x.entity_id === e)?.name || e)}`, `alarm_owners.${e}`, "person", false, "Optional · skip this phone when its person is away.")}</div>`).join("")}</details>` : ""}</section><div class="heading space"><div><h2>Weekly schedules</h2><p class="intro">Connect Home Assistant Schedule helpers.</p></div><button class="button" data-add-schedule>+ Connect schedule</button></div>${this.draft.schedules.length ? `<div class="grid">${this.draft.schedules.map((s, i) => `<section class="card"><div class="schedulehead">${this.field("Schedule name", `schedules.${i}.name`)}<button class="button quiet danger" data-remove-schedule="${i}">Remove</button></div>${this.picker("Schedule helper", `schedules.${i}.entity_id`, "schedule")}${s.weekly && !s.entity_id ? `<p class="inlinewarn">Migrated weekly times are preserved. Select a helper to use HA's time editor.</p>` : ""}<div class="fields space">${this.select("Rooms", `schedules.${i}.source`, this.sources())}${this.number(`Target (${this.data.unit})`, `schedules.${i}.target`)}</div>${this.toggle("Ready when the block starts", `schedules.${i}.preheat`, "A 6:00–8:00 block means comfortable by 6:00.")}<details><summary>Schedule priority & block data</summary><div class="fields">${this.number("Priority", `schedules.${i}.priority`, "Higher wins when schedules overlap.", 'min="0" max="100"')}${this.select("Additional block-data units", `schedules.${i}.data_temperature_unit`, { "°C": "Celsius", "°F": "Fahrenheit" })}</div></details></section>`).join("")}</div>` : `<div class="card empty"><h2>No weekly schedules connected</h2><p>Phone alarms can work on their own, or connect a weekly helper.</p></div>`}<p><a class="help-link" href="/config/helpers">Create or edit weekly time blocks in Home Assistant →</a></p>${this.entry.external_schedules.length ? `<section class="card space"><div class="cardhead"><h2>Also changing this thermostat</h2>${this.pill("External Scheduler", "warning")}</div>${this.entry.external_schedules.map((s) => `<div class="plan"><strong>${escapeHTML(s.name)}</strong><span class="muted">${escapeHTML(s.days.join(", "))} · ${escapeHTML(s.timeslots.join(" / "))}</span></div>`).join("")}<p class="inlinewarn">These schedules set presets independently. Boost lasts ${this.draft.boost_minutes} minutes, even if an external schedule block is longer.</p></section>` : ""}<section class="card space"><h2>Upcoming plan</h2>${this.planPreview()}</section>`
-    );
-  }
-  equipment() {
-    return (
-      this.heading(
-        "Connect your heating",
-        "Start with the relay. Add outdoor temperature for thermal learning.",
-      ) +
-      `<div class="grid"><section class="card"><div class="stepnumber">01 · Heater</div><h2>Heating equipment</h2><div class="space">${this.field("Thermostat name", "name")}</div><div class="space">${this.picker("Heater relay", "heater", "switch", false, "Required · the switch that controls this thermostat's heating zone.")}</div><div class="divider"></div>${this.toggle("Observation only (Shadow mode)", "shadow", "Keep the current controller running while you review Comfort Sense.")}<div class="preview">${this.draft.shadow ? "No heater commands will be sent. Learning still requires observed relay feedback." : "Active control sends commands to the selected relay. Stop other controllers of that relay first."}</div></section><section class="card"><div class="stepnumber">02 · Context</div><h2>Home & outdoor inputs</h2><div class="space">${this.picker("Outdoor temperature", "outdoor_sensor", "temperature", false, "Optional for basic control · required for thermal learning.")}</div><div class="space">${this.picker("Home presence", "home_sensor", "presence", false, "Optional · enables Away after the configured delay.")}</div><div class="preview">Each thermostat uses its own relay and rooms. Whole-furnace power alone cannot identify which zone receives heat.</div></section></div><section class="card space"><h2>Furnace protection</h2><div class="fields space">${this.number("Minimum on time (seconds)", "min_on_seconds", "Finish a heating run before switching off, except for safety cutoffs.", 'min="30" max="3600"')}${this.number("Minimum off time (seconds)", "min_off_seconds", "Wait between heating runs, including after restart.", 'min="30" max="3600"')}${this.number("Heating cycle (seconds)", "pwm_seconds", "Must cover the minimum on + off time.", 'min="120" max="7200"')}${this.number(`Absolute temperature limit (${this.data.unit})`, "max_temperature", "Safety cutoff above all preset targets.")}</div></section>`
-    );
-  }
-  advanced() {
-    return (
-      this.heading(
-        "Fine-tune the essentials",
-        "Most homes can keep these defaults. Manual controls stay out of the way.",
-      ) +
-      `<section class="card"><h2>Temperature presets</h2><div class="fields space">${["comfort", "sleep", "away", "boost"].map((p) => this.number(`${p[0].toUpperCase() + p.slice(1)} (${this.data.unit})`, `${p}_temperature`)).join("")}${this.number("Boost duration (minutes)", "boost_minutes", "External preset schedules use this timer too.", 'min="1" max="240"')}${this.select("Sleep room", "sleep_room", { "": "Use thermostat source", ...Object.fromEntries(this.draft.rooms.map((r) => [r.id, r.name])) })}</div></section><div class="grid space"><section class="card"><h2>Whole-home Average PID</h2><div class="space">${this.select("PID tuning", "average_tuning_mode", { auto: "Automatic · recommended", manual: "Manual PID values" })}</div>${this.draft.average_tuning_mode === "manual" ? this.gains("average_") : `<p class="state-note">${escapeHTML(this.entry.live.average_learning)}</p><p class="hint">Average has its own controller, including in Away mode.</p>`}</section><section class="card"><h2>Presence & sensor timing</h2><div class="fields space">${this.number("Away delay (minutes)", "away_delay_minutes", "Wait before using the Away temperature.", 'min="0" max="180"')}${this.number("Temperature timeout (minutes)", "sensor_timeout_minutes", "Exclude readings that have stopped reporting.", 'min="5" max="1440"')}</div></section></div><section class="card space"><details><summary>Warm-up estimates before learning</summary><div class="fields">${this.number("Maximum preheat (minutes)", "max_preheat_minutes", "Limit how early warm-up may start.", 'min="15" max="480"')}${this.number(`Fallback heating rate (${this.data.unit}/hour)`, "fallback_heat_rate", "Estimate only, replaced by accepted room learning.")}</div></details></section>`
-    );
   }
   value(path) {
     if (path.startsWith("alarm_owners.")) return this.draft.alarm_owners[path.slice(13)] || "";
@@ -440,17 +666,15 @@ class ComfortSensePanel extends HTMLElement {
     this.bindContent();
   }
   bindContent() {
-    this.shadowRoot
-      .querySelector("[data-controls]")
-      ?.addEventListener("click", () =>
-        this.dispatchEvent(
-          new CustomEvent("hass-more-info", {
-            detail: { entityId: this.entry.climate_entity },
-            bubbles: true,
-            composed: true,
-          }),
-        ),
-      );
+    this.shadowRoot.querySelector("[data-controls]")?.addEventListener("click", () =>
+      this.dispatchEvent(
+        new CustomEvent("hass-more-info", {
+          detail: { entityId: this.entry.climate_entity },
+          bubbles: true,
+          composed: true,
+        }),
+      ),
+    );
     this.shadowRoot.querySelectorAll("#content [data-tab]").forEach(
       (b) =>
         (b.onclick = () => {
@@ -468,7 +692,7 @@ class ComfortSensePanel extends HTMLElement {
             : input.type === "number"
               ? input.value === ""
                 ? null
-                : Number(input.value)
+                : Number(input.value) * Number(input.dataset.scale || 1)
               : input.value,
         );
         if (input.type === "checkbox" || input.dataset.field.endsWith("tuning_mode")) this.render();
@@ -480,7 +704,14 @@ class ComfortSensePanel extends HTMLElement {
     });
     this.pickers.forEach(({ id, path, kind, multiple, label }) => {
       const el = this.shadowRoot.getElementById(id);
-      el?.configure({ entities: this.data.entities, selected: this.value(path), kind, multiple, label });
+      el?.configure({
+        entities: this.data.entities,
+        selected: this.value(path),
+        kind,
+        multiple,
+        label,
+        timeZone: this._hass?.config?.time_zone,
+      });
       el?.addEventListener("selection-changed", (e) => {
         this.setValue(path, e.detail);
         if (path === "alarm_sensors") this.render();

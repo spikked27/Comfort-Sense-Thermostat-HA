@@ -187,16 +187,46 @@ const assert = require("node:assert/strict");
       },
     };
   }, data);
-  await page.getByRole("heading", { name: "Your comfort, at a glance" }).waitFor();
-  assert.ok((await page.getByText("Heater disconnected", { exact: true }).count()) >= 1);
+  await page.getByRole("heading", { name: "Upstairs", exact: true }).waitFor();
+  assert.equal(await page.getByRole("heading", { name: "Heating unavailable", exact: true }).count(), 1);
+  const nextAction = await page
+    .getByRole("button", { name: "Check heater connection →", exact: true })
+    .evaluate((el) => el.getBoundingClientRect().toJSON());
+  assert.ok(nextAction.y + nextAction.height < (await page.evaluate(() => innerHeight)));
   assert.equal(await page.locator(".logo").evaluate((img) => img.complete && img.naturalWidth > 0), true);
   const output = process.env.SCREENSHOT_DIR;
   if (output) {
     fs.mkdirSync(output, { recursive: true });
     await page.screenshot({ path: path.join(output, "overview-desktop.png"), fullPage: true });
+    for (const label of ["Rooms", "Schedules", "Heating", "Preferences"]) {
+      await page.getByRole("tab", { name: label, exact: true }).click();
+      await page.screenshot({
+        path: path.join(output, label.toLowerCase() + "-desktop.png"),
+        fullPage: true,
+      });
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    for (const label of ["Overview", "Rooms", "Schedules", "Heating", "Preferences"]) {
+      await page.getByRole("tab", { name: label, exact: true }).click();
+      await page.screenshot({
+        path: path.join(output, label.toLowerCase() + "-setup-mobile.png"),
+        fullPage: true,
+      });
+    }
+    await page.setViewportSize({ width: 1440, height: 1400 });
   }
   await page.getByRole("tab", { name: "Rooms", exact: true }).click();
   assert.equal(await page.getByRole("combobox", { name: "Temperature sensors" }).count(), 2);
+  const order = await page.locator("comfort-sense-panel").evaluate((el) => {
+    const root = el.shadowRoot;
+    return {
+      room: root.querySelector(".room-editor").getBoundingClientRect().top,
+      behavior: [...root.querySelectorAll("summary")]
+        .find((e) => e.textContent.includes("Room behavior"))
+        .getBoundingClientRect().top,
+    };
+  });
+  assert.ok(order.room < order.behavior);
   const picker = page.locator("sense-entity-picker").first();
   await picker.getByRole("combobox").fill("Study");
   await picker.getByRole("option").filter({ hasText: "Study temperature" }).click();
@@ -215,12 +245,18 @@ const assert = require("node:assert/strict");
   assert.equal(saved.config.comfort_temperature, 70);
   assert.equal(saved.config.rooms[0].id, "bedroom");
   assert.equal(saved.config.rooms[0].temperature_sensors.includes("sensor.new_room"), true);
-  await page.getByRole("tab", { name: "Advanced", exact: true }).click();
+  await page.getByRole("tab", { name: "Preferences", exact: true }).click();
   assert.equal(await page.getByText("Proportional · Kp", { exact: true }).count(), 0);
-  await page.getByRole("combobox", { name: "PID tuning", exact: true }).selectOption("manual");
+  await page.getByText("PID tuning & learning", { exact: true }).click();
+  await page.getByRole("combobox", { name: "Average PID tuning", exact: true }).selectOption("manual");
   assert.equal(await page.getByText("Proportional · Kp", { exact: true }).count(), 1);
   await page.getByRole("button", { name: "Discard", exact: true }).click();
   await page.getByRole("tab", { name: "Schedules", exact: true }).click();
+  await page.getByText("Edit morning alarms", { exact: true }).click();
+  const alarm = page
+    .locator("sense-entity-picker")
+    .filter({ has: page.getByRole("combobox", { name: "Next-alarm sensors", exact: true }) });
+  assert.equal(await alarm.getByText("2026-10-30T09:50:00Z", { exact: true }).count(), 0);
   await page.getByRole("button", { name: "+ Connect schedule" }).click();
   await page.getByRole("textbox", { name: "Schedule name", exact: true }).fill("Weekday wake-up");
   const schedule = page
@@ -228,7 +264,10 @@ const assert = require("node:assert/strict");
     .filter({ has: page.getByRole("combobox", { name: "Schedule helper" }) });
   await schedule.getByRole("combobox").fill("Weekday");
   await schedule.getByRole("option").filter({ hasText: "Weekday mornings" }).click();
-  await page.getByRole("tab", { name: "Equipment", exact: true }).click();
+  await page.getByRole("tab", { name: "Heating", exact: true }).click();
+  await page.getByText("Protection & cycling", { exact: true }).click();
+  await page.getByRole("spinbutton", { name: "Minimum on time (minutes)", exact: false }).fill("6");
+  assert.equal(await page.locator("comfort-sense-panel").evaluate((el) => el.draft.min_on_seconds), 360);
   await page.getByRole("switch", { name: "Observation only (Shadow mode)" }).uncheck();
   await page.getByRole("button", { name: "Review & save" }).click();
   assert.equal(await page.getByRole("button", { name: "Save changes", exact: true }).isDisabled(), true);
@@ -250,17 +289,17 @@ const assert = require("node:assert/strict");
   // HA's custom-panel ancestors need not declare a definite percentage height.
   // The save bar must still stay within the viewport on a long page.
   await page.evaluate(() => {
-    const wrapper=document.createElement("div");
+    const wrapper = document.createElement("div");
     document.body.append(wrapper);
     wrapper.append(document.querySelector("comfort-sense-panel"));
   });
-  const layout=await page.locator("comfort-sense-panel").evaluate(el=>({
-    panel:el.getBoundingClientRect().height,
-    footer:el.shadowRoot.querySelector(".footer").getBoundingClientRect().bottom,
-    viewport:innerHeight,
+  const layout = await page.locator("comfort-sense-panel").evaluate((el) => ({
+    panel: el.getBoundingClientRect().height,
+    footer: el.shadowRoot.querySelector(".footer").getBoundingClientRect().bottom,
+    viewport: innerHeight,
   }));
-  assert.ok(layout.footer<=layout.viewport+1);
-  assert.ok(Math.abs(layout.panel-layout.viewport)<=1);
+  assert.ok(layout.footer <= layout.viewport + 1);
+  assert.ok(Math.abs(layout.panel - layout.viewport) <= 1);
   if (output) await page.screenshot({ path: path.join(output, "overview-mobile.png"), fullPage: true });
   await page.setViewportSize({ width: 1440, height: 1100 });
   await page.locator("comfort-sense-panel").evaluate((el) => {
