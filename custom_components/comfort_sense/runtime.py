@@ -19,6 +19,7 @@ from .learning import Sample, ThermalModel, identify
 from .settings import validate
 from .scheduling import windows, choose
 from .morning import MorningAlarms, ArrivalLearning
+from .memory import MAX_BIAS, MAX_AGE, recovered_bias
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -73,6 +74,8 @@ class Runtime:
         self.store = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
         self.closed = False
         self.startup_pending=False
+        self.pending_pid_memory=None
+        self.memory_restore_status="No saved compensation"
 
     async def start(self):
         saved = await self.store.async_load() or {}
@@ -81,6 +84,9 @@ class Runtime:
         if self.mode not in ("off","heat"):
             self.mode="off"
         self.startup_pending=self.mode=="heat"
+        self.pending_pid_memory=saved.get("pid_memory") if self.mode=="heat" else None
+        if self.pending_pid_memory is not None:
+            self.memory_restore_status="Awaiting fresh control context"
         self.preset = saved.get("preset", "comfort")
         if self.preset not in ("comfort", "away", "sleep"):
             self.preset = "comfort"
@@ -134,6 +140,75 @@ class Runtime:
 
     def control_signature(self):
         return [self.config["heater"],self.config["shadow"]]
+
+    def primary_controller(self):
+        members=sorted(r["id"] for r in self.rooms if self.room_data.get(r["id"],{}).get("weight",0)>0)
+        if self.room_data.get(AVERAGE,{}).get("active"):
+            return AVERAGE,self.pids[AVERAGE],members
+        if self.group_data.get("active"):
+            return "_group",self.group_pid,members
+        if len(members)==1:
+            return members[0],self.pids[members[0]],members
+        return None,None,members
+
+    def memory_context(self,key,pid,members,temperature,target,now):
+        members=sorted(members)
+        fresh=bool(members)
+        entities=[]
+        for room in self.rooms:
+            if room["id"] in members:
+                excluded=self.room_data.get(room["id"],{}).get("excluded_sensors",[])
+                entities.extend(e for e in room["temperature_sensors"] if e not in excluded)
+        if self.config["outdoor_sensor"]:
+            entities.append(self.config["outdoor_sensor"])
+        for eid in entities:
+            state=self.hass.states.get(eid)
+            stamp=getattr(state,"last_reported",getattr(state,"last_updated",None)) if state else None
+            fresh &= bool(stamp and -5<=now-stamp.timestamp()<=MAX_AGE and state.state not in ("unknown","unavailable"))
+        return {"time":now,"controller":key,"members":members,"source":self.source,"preset":self.preset,
+            "signature":[self.control_signature(),[[r["id"],self.signature(r)] for r in sorted(self.rooms,key=lambda r:r["id"]) if r["id"] in members]],
+            "temperature":temperature,"target":target,"outdoor":self.outdoor,"fresh":fresh,
+            "gains":[pid.kp,pid.ki,pid.kd]}
+
+    def restore_control_memory(self,key,pid,members,temperature,target,now,allowed):
+        if self.pending_pid_memory is None or not allowed:
+            return
+        bias,status=recovered_bias(self.pending_pid_memory,self.memory_context(key,pid,members,temperature,target,now))
+        self.memory_restore_status=status
+        self.pending_pid_memory=None
+        if bias is not None:
+            pid.integral=bias
+
+    def pid_memory_snapshot(self):
+        key,pid,members=self.primary_controller()
+        if self.mode!="heat" or pid is None or not pid.terms.get("active") or pid.ki<=0:
+            return None
+        context=self.memory_context(key,pid,members,self.current_temperature,self.target_temperature,self.last_tick)
+        if not context["fresh"]:
+            return None
+        context["integral"]=max(-MAX_BIAS,min(MAX_BIAS,pid.integral))
+        return context
+
+    def limiting_condition(self):
+        if self.reason not in ("Room control","Away average","Scheduled comfort","Schedule preheat"):
+            return self.reason
+        elapsed=self.last_tick-self.relay.changed if self.relay.changed is not None else 0
+        if self.actual is False and not self.proposed and self.duty>0:
+            return "Minimum off time" if elapsed<self.relay.min_off else "PWM off interval or accumulating minimum pulse"
+        if self.actual is True and self.proposed and self.duty<=0:
+            return "Minimum on time"
+        _,pid,_=self.primary_controller()
+        if pid and pid.output>0 and self.duty<=0:
+            return "Predictive coast cutoff"
+        return "None"
+
+    def control_diagnostics(self):
+        key,pid,members=self.primary_controller()
+        return {"mode":self.mode,"preset":self.preset,"controller":key,"members":members,
+                "terms_unit":"fraction of available heating duty","temperature_unit":"°C",
+                "terms":dict(pid.terms,stored_integral=pid.integral) if pid else {},
+                "requested_duty":self.duty,"proposed_relay_on":self.proposed,"observed_relay_on":self.actual,
+                "limiting_condition":self.limiting_condition(),"restart_memory":self.memory_restore_status}
 
     @callback
     def changed(self, event):
@@ -372,6 +447,9 @@ class Runtime:
             elif self.actual is None: reason = "Heater unavailable"
             elif self.startup_pending: reason = "Startup: waiting for heater off confirmation"
             elif not selected: reason = "Selected room has no valid temperature" if source not in ("Auto", "Average") else "No valid temperatures"
+            if forced and reason!="Startup: waiting for heater off confirmation" and self.pending_pid_memory is not None:
+                self.pending_pid_memory=None
+                self.memory_restore_status="Discarded by protection or unavailable inputs"
             duties = {}
             for room in self.rooms:
                 rid = room["id"]
@@ -380,13 +458,16 @@ class Runtime:
                 pid = self.pids[rid]
                 if row["temperature"] is None:
                     pid.previous = None
-                    pid.integral = 0
+                    pid.derivative = pid.integral = 0
+                    pid.terms={"active":False,"limit":"input unavailable"}
                     row["duty"] = 0
                     continue
                 model = self.model(rid, now)
                 if not model and rid in self.applied:
                     pid.tune(*(room[k] for k in ("kp", "ki", "kd")))
                     self.applied.pop(rid)
+                self.restore_control_memory(rid,pid,[rid],row["temperature"],row["target"],now,
+                    not forced and not average_control and not group_control and selected.get(rid,0)>0.01 and len(selected)==1)
                 feedforward = model.feedforward(row["target"], self.outdoor) if model and self.outdoor is not None and self.applied.get(rid) == model.fitted_at else 0
                 duty = pid.update(row["temperature"], row["target"], dt, feedforward,
                                   active=not forced and not average_control and not group_control and selected.get(rid,0)>0.01,
@@ -422,6 +503,7 @@ class Runtime:
                 self.applied[AVERAGE] = average_model.fitted_at
             average_duty = 0.0
             if average_temperature is not None:
+                self.restore_control_memory(AVERAGE,average_pid,valid,average_temperature,average_target,now,not forced and average_control)
                 feedforward = average_model.feedforward(average_target,self.outdoor) if average_model and self.outdoor is not None and self.applied.get(AVERAGE) == average_model.fitted_at and len(valid) == len(self.rooms) else 0
                 average_duty = average_pid.update(average_temperature,average_target,dt,feedforward,
                     active=not forced and average_control,
@@ -432,6 +514,8 @@ class Runtime:
                     average_pid.integral = min(0,average_pid.integral)
                 if average_control and not forced:
                     self.duty = average_duty
+            else:
+                average_pid.terms={"active":False,"limit":"input unavailable"}
             self.room_data[AVERAGE] = {"temperature":average_temperature,"target":average_target,
                 "duty":average_duty,"active":average_control,"gains":{k:getattr(average_pid,k) for k in ("kp","ki","kd")},
                 "tuning_mode":self.config["average_tuning_mode"],"model":average_model.to_dict() if average_model else None,
@@ -453,6 +537,7 @@ class Runtime:
                 gains=(min(p.kp for p in controllers),min(p.ki for p in controllers),max(p.kd for p in controllers))
                 if gains != (self.group_pid.kp,self.group_pid.ki,self.group_pid.kd):
                     self.group_pid.tune(*gains)
+                self.restore_control_memory("_group",self.group_pid,membership,self.current_temperature,self.target_temperature,now,not forced)
                 delay=max((self.model(rid,now).delay if self.model(rid,now) else 600 for rid in membership))
                 feedforward=sum((self.model(rid,now).feedforward(self.target_temperature,self.outdoor)
                     if self.outdoor is not None and self.model(rid,now) and self.applied.get(rid)==self.model(rid,now).fitted_at else 0)
@@ -564,6 +649,7 @@ class Runtime:
 
     def saved(self):
         return {"mode":self.mode,"control_signature":self.control_signature(),
+                "pid_memory":self.pid_memory_snapshot(),
                 "preset": self.preset, "source": self.source, "comfort_temperature":self.comfort_temperature,
                 "morning":self.morning.saved(),"arrival_corrections":self.arrivals.corrections,
                 "models": {k:v.to_dict() for k,v in self.models.items()},
@@ -577,6 +663,9 @@ class Runtime:
     async def change(self, **changes):
         for key, value in changes.items():
             setattr(self, key, value)
+        if changes.get("mode")=="off":
+            self.pending_pid_memory=None
+            self.memory_restore_status="Cleared by Off"
         self.force_tick = True  # act immediately without inventing occupancy time
         if "mode" in changes:
             # Persist explicit Off/Heat immediately, including before an unexpected restart.

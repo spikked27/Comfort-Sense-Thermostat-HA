@@ -131,3 +131,45 @@ and [climate entity contract](https://developers.home-assistant.io/docs/core/ent
 ## Room comfort bounds
 
 Per-room Warm/Cold buffers bound temperatures relative to the active thermostat target. Warm latches force heat off; cold latches activate independent protective PIDs near the lower boundary. Warm protection takes priority over cold demand. Boundaries use all valid configured room readings. These protections also apply to schedules and presets, and respect Off/Shadow. Device Configuration entities update and persist values without unloading the runtime; ordinary options changes still reload. [Details](ROOM_PROTECTION.md).
+
+## Setpoint memory and short restarts
+
+Raising the same controller's target retains its accumulated maintenance bias, so
+the proportional term can respond immediately. A target decrease greater than
+0.2°C clears positive bias. Smaller adjustments preserve it. Inactive controllers,
+manual Off, unavailable inputs and protection shutdowns clear integral; changes
+to room-group or Average membership reset the appropriate controller history.
+
+Only the active controller can save a restart bias, capped to ±0.5 of full duty.
+It is restored only within 15 minutes with the same controller, selected room IDs,
+source selection, preset, equipment, sensor configuration and PID gains. Target
+change must be at most 0.2°C, room temperature change at most 1°C and outdoor
+change at most 3°C. Contributing sensors must have valid reports no older than
+15 minutes. A configured outdoor sensor must also be fresh; manual setups without
+an outdoor sensor can restore when both stored/current outdoor values are absent.
+Simultaneous independent-room schedules do not share a single saved bias.
+
+The current source is recalculated from fresh occupancy. If Auto now chooses a
+different room/group or falls back to Average, the previous bias is discarded.
+Manual Off stores no bias. Corrupt, future-dated, stale, changed-context and
+over-limit snapshots are rejected. Old versions without a bias snapshot start
+with zero integral while retaining their existing learning and HVAC intent.
+
+No derivative samples, relay pulse, pulse credit or dwell timer is restored.
+The startup controller still confirms observed Off and waits its full minimum-off
+interval. A preserved bias cannot bypass these checks or room/safety protection.
+
+## Diagnostics
+
+Use the integration's **Download diagnostics** action for a current snapshot of
+proportional, integral, derivative and outdoor feedforward terms, requested duty,
+relay observations and limiting conditions. Values use duty fractions (1.0 means
+100%); temperatures are °C. Terms describe the PID calculation before coast,
+deadline and room-protection arbitration. `stored_integral` reports the current
+accumulator after any later coast reset. No sensor/relay IDs, room names, phone
+alarms, historical samples or credentials are included in this report.
+
+The existing Heat demand sensor exposes only concise `limiting_condition` and
+`restart_memory` attributes. It does not record all varying PID terms in HA's
+state history or add more Configuration entities. Normal PWM off intervals are
+distinguished from minimum-off waiting and temperature/protection cutoffs.

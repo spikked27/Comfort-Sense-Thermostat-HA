@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0a1
+
+- Preserve maintenance PID compensation on target increases; shed positive bias after larger setbacks.
+- Recover bounded integral compensation only through brief restarts with matching source, equipment, gains and fresh temperature context.
+- Keep Off, protection cutoffs, stale data and changed room/group selection as reset boundaries.
+- Add on-demand anonymized PID diagnostics and concise demand limiting/restart-memory status attributes.
+- Add whole-runtime multi-day thermal simulations for occupancy groups, schedules, Away, weather and restart behavior.
+
 ## 0.5.3a1
 
 - Persist Heat/Off selections immediately and restore them after restart or integration reload.

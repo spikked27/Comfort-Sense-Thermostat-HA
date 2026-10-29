@@ -58,3 +58,5 @@ buffer migration, hidden manual entities, automatic defaults, Fahrenheit morning
 setup, schedule priority, preheat target latching, model-required heating duty and
 bounded arrival corrections. Passing tests verify these behaviors; field arrival
 accuracy still depends on validated household learning and heating capacity.
+
+The 0.6 suite adds guarded restart bias policy, bidirectional setpoint responses, corruption/age/freshness rejection, matching occupancy-group recovery, saved-bias bounds and anonymized diagnostics. Whole-runtime boundary simulations couple two delayed thermal plants to the actual runtime, schedule planner and relay controller over 36–48 hours. They cover morning arrival, changing outdoor temperature, occupancy switching/grouping, Away and restart behavior. Real HA tests verify storage/reload recovery, long-outage rejection and diagnostics export. Known synthetic plants validate software behavior; they do not establish a household arrival-time guarantee.
