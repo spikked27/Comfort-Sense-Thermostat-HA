@@ -25,7 +25,8 @@ Room-aware heating for Home Assistant, with gradual occupancy changes and learni
 
 **Visual setup is built in.** Open **Comfort Sense** in the HA sidebar for a live
 health overview, visual room cards, searchable sensor pickers, phone alarms and
-native Schedule-helper connections. Advanced/manual settings stay out of the way.
+native Schedule-helper connections. Required connections come first; optional
+behavior, protection and manual tuning stay in expandable sections.
 [Console guide →](docs/CONSOLE.md)
 
 [![Comfort Sense console with example data](docs/assets/console.png)](docs/CONSOLE.md)
@@ -93,7 +94,7 @@ it is not yet included in the default HACS catalog.
 | **Room and Average temperature sensors** | Readings, learning status and excluded sensors. |
 | **Heat demand and Control status** | Understanding heat requests and Shadow behavior. |
 
-The thermostat dial sets one **comfort target**, carried across Auto, pinned rooms and Average. Away uses its configured target and the dedicated Average controller. Boost expires automatically. Basic setup has six fields; presets, relay limits and Average PID live in **Configure → Advanced**.
+The thermostat dial sets one **comfort target**, carried across Auto, pinned rooms and Average. Away uses its configured target and the dedicated Average controller. Boost expires automatically. In the sidebar console, presets and Average PID are under **Preferences**, and relay limits are under **Heating → Protection & cycling**. The native **Configure → Advanced** flow remains available.
 
 For morning warm-up, create a **Schedule helper** using HA's weekly time-block
 editor, then connect it under **Comfort Sense → Configure → Scheduling**. Choose

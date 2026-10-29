@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.0a1
+
+- Reorganize Overview around one operating status, next action, compact temperature/source strip and required/optional connection tiles.
+- Put room sensor selection and heater connection first on their settings pages, with live input readiness and required/optional labels.
+- Start Schedules with a routine summary and show days shared by external preset schedules; keep advanced alarm and weekly settings expandable.
+- Rename Equipment to Heating and Advanced to Preferences; group presets into compact tiles and collapse optional behavior, protection, PID and fallback settings.
+- Show protection timing in minutes and alarm readings in HA's local time zone; keep all five navigation labels visible on mobile.
+- Preserve household configuration, heating behavior, learned models and original branding. Restart HA after updating to load the new console module.
+
 ## 0.7.1a1
 
 - Keep the console navigation and save bar inside the viewport when HA's custom-panel container has no definite height.

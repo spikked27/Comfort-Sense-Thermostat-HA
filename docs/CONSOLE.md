@@ -10,14 +10,16 @@ remain available.
 
 ## Start with Overview
 
-The largest numbers show the temperature being controlled and the effective
-target. **Now following** identifies the selected room, grouped rooms or Average.
+The first panel explains the current operating state and offers the next useful
+action when something needs attention. The compact temperature strip shows the
+current reading, effective target and selected room, grouped rooms or Average.
 The target includes any active preset or comfort deadline.
 
-**Setup health** shows disconnected inputs, observation-only operation and
-external Scheduler connections. Select **Review** to jump to the relevant setup
-screen. Room cards show temperature, occupancy history, active membership and
-learning status. **Open thermostat controls** opens the normal HA climate dialog.
+Four connection tiles separate required heating inputs from optional occupancy
+and outdoor inputs. Select a tile to open its setup page. Room cards show
+temperature, occupancy history, active membership and learning status. Detailed
+control diagnostics stay collapsed until needed. **Open thermostat controls**
+opens the normal HA climate dialog.
 
 Heat demand is the requested percentage of a heating cycle, not proof of burner
 activity. Heater feedback, Shadow mode and the current control reason are shown
@@ -31,8 +33,10 @@ Only appropriate sensor types appear. Multiple sensors in one room are averaged.
 Comfort Sense's own calculated temperature entities cannot be selected as inputs.
 
 Occupancy sensors are optional. Rooms without them can still contribute to
-Average. Medium uses 30 minutes of occupancy history. Grouping tolerance and one
-shared room protection buffer are visible above the room cards.
+Average. Required temperature inputs and optional occupancy inputs show live
+connection status. Expand **Room behavior**, below the room cards, to change
+reaction time or grouping tolerance. Medium uses 30 minutes of occupancy history.
+The shared room protection buffer is under **Heating → Protection & cycling**.
 
 Automatic tuning is the default. Expand **Room tuning** and choose Manual only
 when needed; gain fields appear conditionally. Removing a room also removes its
@@ -41,10 +45,12 @@ saving.
 
 ## Schedules
 
-Enable morning alarms, select each phone's next-alarm timestamp sensor, and choose
+Start with **Your routine** for the next comfort deadline and connected sources.
+Expand **Edit morning alarms**, select each phone's next-alarm timestamp sensor, and choose
 the target, room source and accepted wake-up window. Associate a person with a
 phone to skip it while that person is away. The clock-app allow list is still a
-setting of the phone's HA Companion app.
+setting of the phone's HA Companion app. Alarm readings display readable dates
+and times in HA's configured time zone.
 
 Weekly times remain in native **Schedule helpers**. Create/edit their weekly
 blocks in HA's Helpers screen, then select the helper and target in the console.
@@ -52,23 +58,28 @@ The connection controls whether to warm up before the block starts. Additional
 block-data units and overlap priority are under each schedule's expandable
 settings. Existing migrated weekly data remains intact until a helper replaces it.
 
-The **Also changing this thermostat** section lists enabled external Scheduler
+The **External preset schedules** section lists enabled external Scheduler
 schedules that target this climate entity. It does not modify or import those
-schedules. Boost still uses the thermostat's configured duration, independently
+schedules. A warning identifies days shared by multiple schedules. Boost still uses the thermostat's configured duration, independently
 of the length of an external Scheduler block.
 
-## Equipment and Advanced
+## Heating and Preferences
 
-Equipment contains the heater relay, outdoor temperature, home presence and
-minimum on/off times. Review a change out of Shadow mode carefully: it requires
+Heating puts the required relay connection first, with optional outdoor and home
+presence inputs below it. Expand **Protection & cycling** for minimum on/off
+times, cycle length, the shared room buffer and absolute cutoff. Timing inputs
+use minutes; the closed section summarizes the current values. Review a change out of Shadow mode carefully: it requires
 acknowledging that other controllers of that relay have been stopped and the
 relay must be available. Changing the relay or Shadow mode starts the thermostat
 Off; use the normal thermostat controls to select Heat afterward.
 
-Advanced contains presets, Boost duration, Sleep room, Average PID tuning, sensor
-timeouts and fallback warm-up estimates. Average retains its own PID controller.
+Preferences starts with four temperature preset tiles. Boost duration and Sleep
+room are under **Preset behavior**. **PID tuning & learning** and **Advanced sensor
+& warm-up settings** stay collapsed by default. Average retains its own PID controller.
 The default Sleep-room choice uses the thermostat's temperature source (Auto,
 Average or the selected room). Select a specific Sleep room to pin it overnight.
+
+[Mobile preset settings preview with example data](assets/console-preferences-mobile.png)
 
 ## Outdoor compensation and Ke
 

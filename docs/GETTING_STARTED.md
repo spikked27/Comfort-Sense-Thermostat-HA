@@ -51,7 +51,7 @@ the old thermostat can continue controlling the relay while Comfort Sense observ
 
 Choose **Fast**, **Medium** or **Slow** reaction. Medium is the default: a 30-minute moving occupancy window gives about a 15-minute buffer after a sustained room change.
 
-The six basic fields are name, relay, optional outdoor sensor, optional home presence, Shadow mode and reaction time. Set temperature on the thermostat card. Away/Sleep/Boost, relay timing and Average PID live under **Configure → Advanced**, with conservative defaults of a twenty-minute cycle and five-minute minimum On/Off times.
+The six basic fields are name, relay, optional outdoor sensor, optional home presence, Shadow mode and reaction time. Set temperature on the thermostat card. After initial creation, open **Comfort Sense** in the sidebar for visual setup. **Heating → Protection & cycling** contains the twenty-minute cycle and five-minute minimum On/Off defaults. **Preferences** contains presets and Average PID tuning. The native **Configure → Advanced** flow remains available.
 
 Temperature fields and the thermostat card follow your HA temperature-unit preference.
 If HA uses Fahrenheit, enter Fahrenheit values directly. Internally stored targets
