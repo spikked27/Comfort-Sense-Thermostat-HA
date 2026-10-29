@@ -62,6 +62,7 @@ class Runtime:
         self.proposed = False
         self.reason = "Starting"
         self.current_temperature = self.target_temperature = None
+        self.target_origin="Comfort preset"
         self.room_data = {}
         self.schedule_cache, self.schedule_status = {}, {}
         self.schedule_plans = []
@@ -459,6 +460,8 @@ class Runtime:
             if self.preset == "sleep" and self.config["sleep_room"] and not away:
                 source = self.config["sleep_room"]
             scheduled=self.plan_schedules(now,valid,scores,away)
+            self.target_origin=("Away · home presence" if away and self.preset!="away" else "Away preset" if away
+                else " + ".join(p["name"] for p in scheduled) if scheduled else self.preset.title()+" preset")
             scheduled_rooms=[]
             if scheduled:
                 if all(p["source"] not in ("Auto","Average") for p in scheduled):

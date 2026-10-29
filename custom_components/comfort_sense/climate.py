@@ -56,6 +56,7 @@ class ComfortSenseClimate(ComfortSenseEntity, ClimateEntity):
     def extra_state_attributes(self):
         r = self.runtime
         return {"shadow_mode": r.config["shadow"], "control_reason": r.reason,
+                "target_origin":r.target_origin,
                 "active_room":r.active_source,"reaction_time":r.config["reaction_time"],
                 "active_rooms":[room["name"] for room in r.rooms if r.room_data.get(room["id"],{}).get("weight",0)>0],
                 "group_control":r.group_data,"room_protection":r.guard_data,

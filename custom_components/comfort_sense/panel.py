@@ -139,6 +139,7 @@ def snapshot(hass):
         entries.append({"entry_id":entry.entry_id,"revision":revision(config),"name":config["name"],"config":converted(config,unit,True),
             "climate_entity":climate,"issues":issues,"rooms":rooms,"external_schedules":external,
             "live":{"mode":runtime.mode if runtime else "off","preset":runtime.preset if runtime else "comfort",
+                "target_origin":runtime.target_origin if runtime else "Not loaded",
                 "source":runtime.active_source if runtime else "Unavailable","reason":runtime.reason if runtime else "Not loaded",
                 "temperature":display_temperature(runtime.current_temperature,unit) if runtime and runtime.current_temperature is not None else None,
                 "target":display_temperature(runtime.target_temperature,unit) if runtime and runtime.target_temperature is not None else None,

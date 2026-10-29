@@ -44,7 +44,9 @@ async def test_panel_assets_and_admin_snapshot(hass,hass_client,hass_ws_client):
 
 async def test_console_rejects_non_admin_reads_and_writes(hass,hass_ws_client,hass_read_only_user):
     entry=await setup(hass)
-    ws=await hass_ws_client(hass,hass_read_only_user)
+    refresh=await hass.auth.async_create_refresh_token(hass_read_only_user)
+    token=hass.auth.async_create_access_token(refresh)
+    ws=await hass_ws_client(hass,token)
     for number,payload in enumerate(({"type":"comfort_sense/console"},
         {"type":"comfort_sense/save","entry_id":entry.entry_id,"revision":"x","unit":"°C","config":{}}),1):
         await ws.send_json({"id":number,**payload})

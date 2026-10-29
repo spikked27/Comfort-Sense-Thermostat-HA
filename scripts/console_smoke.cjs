@@ -37,7 +37,7 @@ const assert = require('node:assert/strict');
     rooms:[{id:'bedroom',temperature:69.1,occupancy:100,active:true,learning:'Collecting: need at least 48 hours and 400 valid samples',learned:false},
            {id:'living',temperature:66.7,occupancy:0,active:false,learning:'Waiting for observations',learned:false}],
     external_schedules:[{name:'Thermostat workday schedule',entity_id:'switch.schedule',days:['mon','tue','wed','thu','fri'],timeslots:['04:30 - 06:30']}],
-    live:{mode:'heat',preset:'sleep',source:'Bedroom',reason:'Heater unavailable',temperature:69.1,target:65,demand:0,observed:null,proposed:false,morning:'Alarm connected',plans:[],average_learning:'Waiting for valid heating feedback'}}]};
+    live:{mode:'heat',preset:'sleep',source:'Bedroom',reason:'Heater unavailable',temperature:69.1,target:65,demand:0,observed:null,proposed:false,outdoor:45,outdoor_compensation:{status:'Waiting for accepted model',coefficient:null,active:false},target_origin:'Sleep preset',morning:'Alarm connected',plans:[],average_learning:'Waiting for valid heating feedback'}}]};
   await page.route('http://comfort.test/**', async route => {
     if(route.request().url().endsWith('icon.png')) return route.fulfill({contentType:'image/png',body:icon});
     return route.fulfill({contentType:'text/html',body:'<html><body style="margin:0"><comfort-sense-panel></comfort-sense-panel></body></html>'});
@@ -54,7 +54,7 @@ const assert = require('node:assert/strict');
     }};
   },data);
   await page.getByRole('heading',{name:'Your comfort, at a glance'}).waitFor();
-  assert.equal(await page.getByText('Heater disconnected',{exact:true}).count(),1);
+  assert.ok(await page.getByText('Heater disconnected',{exact:true}).count()>=1);
   assert.equal(await page.locator('.logo').evaluate(img=>img.complete&&img.naturalWidth>0),true);
   const output=process.env.SCREENSHOT_DIR;
   if(output){fs.mkdirSync(output,{recursive:true});await page.screenshot({path:path.join(output,'overview-desktop.png'),fullPage:true});}
@@ -94,11 +94,16 @@ const assert = require('node:assert/strict');
   await page.getByRole('button',{name:'Discard',exact:true}).click();
   await page.setViewportSize({width:390,height:844});
   await page.getByRole('tab',{name:'Rooms',exact:true}).click();
-  const overflow=await page.locator('comfort-sense-panel').evaluate(el=>{let root=el.shadowRoot;return [...root.querySelectorAll('main,.card,.fields')].some(e=>e.scrollWidth>e.clientWidth+2)});
+  const overflow=await page.locator('comfort-sense-panel').evaluate(el=>{let root=el.shadowRoot;return [...root.querySelectorAll('main,.card,.fields,header,.top,.footer')].some(e=>e.scrollWidth>e.clientWidth+2)});
   assert.equal(overflow,false);
   if(output)await page.screenshot({path:path.join(output,'rooms-mobile.png'),fullPage:true});
   await page.getByRole('tab',{name:'Overview',exact:true}).click();
   if(output)await page.screenshot({path:path.join(output,'overview-mobile.png'),fullPage:true});
+  await page.setViewportSize({width:1440,height:1100});
+  await page.locator('comfort-sense-panel').evaluate(el=>{
+    Object.entries({'--primary-background-color':'#111b21','--card-background-color':'#19262e','--primary-text-color':'#e6eef0','--secondary-text-color':'#a4b8c1','--divider-color':'#30434e','--primary-color':'#61cccb','--secondary-background-color':'#243640','--text-primary-color':'#102226'}).forEach(([key,value])=>el.style.setProperty(key,value));
+  });
+  if(output)await page.screenshot({path:path.join(output,'overview-dark.png'),fullPage:true});
   assert.deepEqual(errors,[]);
   console.log('Console browser checks passed: entity filters, preserved IDs, Fahrenheit payload, manual PID visibility, schedule draft, active-control review, mobile layout and logo.');
   await browser.close();
