@@ -28,6 +28,8 @@ health overview, visual room cards, searchable sensor pickers, phone alarms and
 native Schedule-helper connections. Advanced/manual settings stay out of the way.
 [Console guide →](docs/CONSOLE.md)
 
+[![Comfort Sense console with example data](docs/assets/console.png)](docs/CONSOLE.md)
+
 Most thermostats measure one spot in your home. Comfort Sense uses the rooms you
 actually spend time in. Add your room temperature and occupancy sensors, choose
 one thermostat target, and let Auto follow the most occupied room using a moving occupancy window.

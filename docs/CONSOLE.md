@@ -6,6 +6,8 @@ needed. The console is available to administrators and follows HA's light/dark
 theme and temperature units. The existing Configure flow and entity controls
 remain available.
 
+![Console overview with example data](assets/console.png)
+
 ## Start with Overview
 
 The largest numbers show the temperature being controlled and the effective
