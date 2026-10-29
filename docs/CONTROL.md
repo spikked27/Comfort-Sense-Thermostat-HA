@@ -175,3 +175,24 @@ The existing Heat demand sensor exposes only concise `limiting_condition` and
 `restart_memory` attributes. It does not record all varying PID terms in HA's
 state history or add more Configuration entities. Normal PWM off intervals are
 distinguished from minimum-off waiting and temperature/protection cutoffs.
+
+## Startup entity availability grace
+
+Startup entities may be unknown, unavailable or not yet freshly reported. Saved
+PID compensation waits for relevant cached room sensors, the configured outdoor
+sensor, valid relay feedback and Auto occupancy inputs before comparing context.
+HA states marked `restored` do not count as confirmed relay or temperature reports.
+Ordinary heating still uses its normal valid-input and room protection rules;
+optional bias recovery can wait independently while usable basic control resumes.
+
+The original snapshot timestamp is preserved even if HA restarts again while
+waiting. Total snapshot age, including HA downtime and input recovery, must still
+be at most 15 minutes. Expired or invalid snapshots are discarded without restoring
+the bias. Off, warm/absolute temperature protection, and explicit source/preset
+changes discard pending memory immediately. Once all inputs are ready, the usual
+context/gain/target/temperature checks still apply; a different freshly selected
+Auto group is not forced back to the old group.
+
+No grace setting is required. Waiting never replays a pulse or bypasses relay
+availability, off confirmation or minimum-off time. Heat/Off intent and learned
+models remain independent of the optional PID bias recovery.

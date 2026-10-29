@@ -68,3 +68,43 @@ async def test_diagnostics_explain_pid_without_exporting_entity_ids_or_room_name
     assert report["control"]["limiting_condition"]=="Minimum off time"
     assert report["timing"]["min_off_seconds"]==300
     assert report["restart_memory"]["maximum_age_seconds"]==900
+
+
+async def test_startup_unavailability_waits_then_recovers_bias_and_minimum_off(hass,freezer):
+    entry,runtime=await setup(hass,freezer)
+    before=runtime.pids["_average"].integral
+    await hass.config_entries.async_unload(entry.entry_id)
+    hass.states.async_set("sensor.private_room","unavailable")
+    hass.states.async_set("switch.private_heater","unavailable")
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    restored=hass.data[DOMAIN][entry.entry_id]
+    assert restored.mode=="heat"
+    assert restored.pending_pid_memory is not None
+    assert not restored.proposed
+    original_time=restored.saved()["pid_memory"]["time"]
+    freezer.tick(60)
+    hass.states.async_set("sensor.private_room","20",{"unit_of_measurement":"°C"})
+    hass.states.async_set("switch.private_heater","off")
+    await restored.change(mode="heat")
+    await hass.async_block_till_done()
+    assert "Restored" in restored.memory_restore_status
+    assert restored.pids["_average"].integral==pytest.approx(before,abs=0.005)
+    assert restored.relay.changed==dt_util.utcnow().timestamp()
+    assert not restored.proposed
+    assert original_time<dt_util.utcnow().timestamp()
+
+
+async def test_waiting_bias_expires_even_if_entities_never_recover(hass,freezer):
+    entry,runtime=await setup(hass,freezer)
+    await hass.config_entries.async_unload(entry.entry_id)
+    hass.states.async_set("sensor.private_room","unavailable")
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    restored=hass.data[DOMAIN][entry.entry_id]
+    assert restored.pending_pid_memory is not None
+    freezer.tick(901)
+    await restored.change(mode="heat")
+    assert restored.pending_pid_memory is None
+    assert "expired" in restored.memory_restore_status
+    assert not restored.proposed

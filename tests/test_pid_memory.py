@@ -129,3 +129,73 @@ class RuntimeMemoryTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Restored",restored.memory_restore_status)
         self.assertAlmostEqual(restored.group_pid.integral,0.3,delta=0.002)
         await restored.stop()
+
+    async def test_missing_startup_sensors_recover_without_losing_saved_bias(self):
+        saved=await self.prepare_average()
+        self.set("sensor.a","unavailable");self.set("sensor.b","unknown")
+        self.set("switch.heat","unavailable")
+        restored=runtime.Runtime(self.hass,self.entry);restored.store.data=saved
+        await restored.start()
+        self.assertEqual(restored.mode,"heat")
+        self.assertFalse(restored.proposed)
+        self.assertIsNotNone(restored.pending_pid_memory)
+        self.assertEqual(restored.saved()["pid_memory"]["time"],saved["pid_memory"]["time"])
+        self.advance(60)
+        self.set("sensor.a","20","°C");self.set("sensor.b","20","°C")
+        self.set("sensor.outdoor","5","°C");self.set("switch.heat","off")
+        await restored.tick()
+        self.assertIn("Restored",restored.memory_restore_status)
+        self.assertAlmostEqual(restored.pids["_average"].integral,saved["pid_memory"]["integral"],delta=0.005)
+        self.assertFalse(restored.proposed)
+        self.assertEqual(restored.relay.changed,self.now.timestamp())
+        await restored.stop()
+
+    async def test_partial_average_and_missing_outdoor_wait_for_complete_context(self):
+        saved=await self.prepare_average()
+        self.set("sensor.b","unavailable");self.set("sensor.outdoor","unavailable")
+        restored=runtime.Runtime(self.hass,self.entry);restored.store.data=saved
+        await restored.start()
+        self.assertIsNotNone(restored.pending_pid_memory)
+        self.advance(60);self.set("sensor.b","20","°C")
+        await restored.tick()
+        self.assertIsNotNone(restored.pending_pid_memory)
+        self.set("sensor.outdoor","5","°C");self.advance(30)
+        await restored.tick()
+        self.assertIn("Restored",restored.memory_restore_status)
+        await restored.stop()
+
+    async def test_waiting_expiry_is_not_extended_by_saves_or_another_restart(self):
+        saved=await self.prepare_average()
+        self.set("sensor.a","unavailable")
+        restored=runtime.Runtime(self.hass,self.entry);restored.store.data=saved
+        await restored.start()
+        waiting=restored.saved()
+        await restored.stop()
+        self.advance(901)
+        again=runtime.Runtime(self.hass,self.entry);again.store.data=waiting
+        await again.start()
+        self.assertIsNone(again.pending_pid_memory)
+        self.assertIn("expired",again.memory_restore_status)
+        await again.stop()
+
+    async def test_off_and_source_changes_clear_waiting_compensation(self):
+        saved=await self.prepare_average();self.set("sensor.a","unavailable")
+        for changes in ({"mode":"off"},{"source":"b"},{"preset":"sleep"}):
+            restored=runtime.Runtime(self.hass,self.entry);restored.store.data=copy.deepcopy(saved)
+            await restored.start()
+            self.assertIsNotNone(restored.pending_pid_memory)
+            await restored.change(**changes)
+            self.assertIsNone(restored.pending_pid_memory)
+            await restored.stop()
+
+    async def test_restored_placeholders_do_not_count_as_valid_feedback(self):
+        saved=await self.prepare_average()
+        self.hass.values["switch.heat"].attributes["restored"]=True
+        self.hass.values["sensor.a"].attributes["restored"]=True
+        restored=runtime.Runtime(self.hass,self.entry);restored.store.data=saved
+        await restored.start()
+        self.assertIsNone(restored.actual)
+        self.assertIsNone(restored.room_data["a"]["temperature"])
+        self.assertFalse(restored.proposed)
+        self.assertIsNotNone(restored.pending_pid_memory)
+        await restored.stop()

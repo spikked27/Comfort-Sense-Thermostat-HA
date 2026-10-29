@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.1a1
+
+- Defer saved PID compensation validation while startup entities are unavailable or stale.
+- Preserve the original cache timestamp across additional restarts; total age remains capped at 15 minutes.
+- Require all relevant cached room inputs and configured outdoor/Auto occupancy sources before comparing control context.
+- Reject HA restored placeholders as confirmed relay or temperature feedback.
+- Preserve immediate Off/protection/source-change resets and minimum-off furnace protection.
+
 ## 0.6.0a1
 
 - Preserve maintenance PID compensation on target increases; shed positive bias after larger setbacks.
