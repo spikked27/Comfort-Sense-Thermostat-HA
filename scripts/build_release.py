@@ -14,7 +14,7 @@ def main():
     output=ROOT/f'comfort_sense-{version}.zip'
     with ZipFile(output,'w',ZIP_DEFLATED) as archive:
         for path in sorted(component.rglob('*')):
-            if path.is_file() and path.suffix in ('.py','.json','.png') and '__pycache__' not in path.parts:
+            if path.is_file() and path.suffix in ('.py','.json','.png','.js') and '__pycache__' not in path.parts:
                 archive.write(path,path.relative_to(ROOT))
     print(f'Created {output.name}')
 

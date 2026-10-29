@@ -62,6 +62,7 @@ class Runtime:
         self.proposed = False
         self.reason = "Starting"
         self.current_temperature = self.target_temperature = None
+        self.target_origin="Comfort preset"
         self.room_data = {}
         self.schedule_cache, self.schedule_status = {}, {}
         self.schedule_plans = []
@@ -253,6 +254,22 @@ class Runtime:
                 "terms":dict(pid.terms,stored_integral=pid.integral) if pid else {},
                 "requested_duty":self.duty,"proposed_relay_on":self.proposed,"observed_relay_on":self.actual,
                 "limiting_condition":self.limiting_condition(),"restart_memory":self.memory_restore_status}
+
+    def outdoor_compensation(self):
+        """Explain the physical feedforward term without inventing a manual Ke."""
+        key,pid,members=self.primary_controller()
+        controllers=members if key=="_group" else [key] if key else []
+        models=[self.model(rid,self.last_tick) for rid in controllers]
+        learned=[model for rid,model in zip(controllers,models) if model and self.applied.get(rid)==model.fitted_at]
+        manual=bool(controllers) and all((self.config["average_tuning_mode"] if rid==AVERAGE else
+            next(room["tuning_mode"] for room in self.rooms if room["id"]==rid))=="manual" for rid in controllers)
+        status=("No outdoor sensor" if not self.config["outdoor_sensor"] else "Outdoor reading unavailable" if self.outdoor is None
+                else "Manual PID · compensation off" if manual else "Waiting for accepted model" if not learned
+                else "Learned" if len(learned)==len(controllers) else "Partly learned")
+        return {"method":"learned heat-loss feedforward","status":status,
+            "coefficient":sum(model.loss_rate/model.heat_rate for model in learned)/len(controllers) if learned else None,
+            "coefficient_unit":"duty fraction per °C","applied_duty_percent":round(pid.terms.get("feedforward",0)*100,2) if pid else 0,
+            "active":bool(pid and pid.terms.get("active"))}
 
     @callback
     def changed(self, event):
@@ -446,6 +463,8 @@ class Runtime:
             if self.preset == "sleep" and self.config["sleep_room"] and not away:
                 source = self.config["sleep_room"]
             scheduled=self.plan_schedules(now,valid,scores,away)
+            self.target_origin=("Away · home presence" if away and self.preset!="away" else "Away preset" if away
+                else " + ".join(p["name"] for p in scheduled) if scheduled else self.preset.title()+" preset")
             scheduled_rooms=[]
             if scheduled:
                 if all(p["source"] not in ("Auto","Average") for p in scheduled):

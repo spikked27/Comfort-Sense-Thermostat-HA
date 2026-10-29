@@ -30,7 +30,8 @@ def main():
         assert set(strings[section]['step'])=={'system','manage','room','review','init','schedules','schedule','schedule_settings','room_gains','advanced','presets','relay','average_pid','average_gains','schedule_details','morning','alarm_owner','alarm_window'}
     for path in COMPONENT.rglob('*'):
         if path.is_file() and '__pycache__' not in path.parts:
-            assert path.suffix in ('.py','.json','.png'), f'Unexpected integration artifact: {path.name}'
+            assert path.suffix in ('.py','.json','.png','.js'), f'Unexpected integration artifact: {path.name}'
+            if path.suffix=='.js':assert path.parent==COMPONENT/'frontend'
             if path.suffix=='.png':
                 assert path.parent==COMPONENT/'brand', 'Brand images belong in brand/'
     for path,size in [(COMPONENT/'brand/icon.png',256), (COMPONENT/'brand/icon@2x.png',512),

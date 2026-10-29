@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.0a1
+
+- Bundle a themed administrator console in HA's sidebar and integration configuration page.
+- Add an overview of active rooms, effective target, heat demand, relay feedback and setup blockers.
+- Edit rooms with searchable typed entity pickers and live sensor readings; automatic tuning stays the default.
+- Configure native Schedule-helper bindings and phone alarms in a separate visual scheduling section.
+- Show connected external Scheduler schedules and explain timed Boost behavior.
+- Validate reviewed drafts atomically, reject stale edits and require confirmed relay availability before enabling active control.
+- Preserve original branding, room IDs, compatible learning and manual-entity preferences.
+- Expose outdoor temperature and the learned heat-loss feedforward status/coefficient in thermostat attributes.
+- Add real HA console, authorization, unit-conversion and browser/mobile regression coverage.
+
 ## 0.6.1a1
 
 - Defer saved PID compensation validation while startup entities are unavailable or stale.
