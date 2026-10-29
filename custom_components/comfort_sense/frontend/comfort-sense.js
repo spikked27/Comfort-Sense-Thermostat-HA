@@ -21,6 +21,7 @@ const css = `
 @media(max-width:580px){.grid,.grid.three,.fields{grid-template-columns:1fr}.heading{align-items:flex-start}.card{padding:19px;border-radius:15px}.top{gap:9px}.top .sub{display:none}.top .logo{width:34px;height:34px}.top select{max-width:155px;font-size:13px;padding:8px}.brand{font-size:16px}.metric{font-size:46px}.footer{padding:12px 16px}.footer .savehint{font-size:12px;max-width:110px}.button{padding:9px 12px}.issue{gap:9px}.issue .button{font-size:12px;padding:7px}.heading h1{font-size:25px}.metrics{gap:10px}.dialog{padding:21px}.top .button{padding:7px}.legend{flex-wrap:wrap}}
 @media(max-width:580px){.cardhead{flex-wrap:wrap}.cardhead h2{flex:1 1 210px}.cardhead .pill{white-space:normal}.brand{white-space:nowrap;font-size:15px}.top select{max-width:130px}.top .button{padding:4px;min-height:32px;min-width:32px}.top .logo{width:28px;height:28px}.footer>a{display:none}.footer .button{white-space:nowrap}.heading{flex-wrap:wrap}.heading>div{flex:1 1 230px}}
 .pill.error{color:var(--primary-text-color,#20292e)}.inlinewarn{color:var(--primary-text-color,#20292e);border-inline-start:3px solid var(--cs-warn);padding-inline-start:10px}
+:host{display:flex;flex-direction:column;overflow:hidden}header{flex-shrink:0}main{flex:1;min-height:0;width:100%;overflow:auto;padding-bottom:35px}.footer{position:relative;flex-shrink:0;left:auto;right:auto;bottom:auto}
 `;
 
 class SenseEntityPicker extends HTMLElement {

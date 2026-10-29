@@ -165,7 +165,7 @@ const assert = require("node:assert/strict");
       return route.fulfill({ contentType: "image/png", body: icon });
     return route.fulfill({
       contentType: "text/html",
-      body: '<html><body style="margin:0"><comfort-sense-panel></comfort-sense-panel></body></html>',
+      body: '<html style="height:100%"><body style="margin:0;height:100%"><comfort-sense-panel></comfort-sense-panel></body></html>',
     });
   });
   await page.goto("http://comfort.test/");
