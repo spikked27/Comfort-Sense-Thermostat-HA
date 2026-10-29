@@ -179,6 +179,7 @@ const assert = require("node:assert/strict");
   await page.evaluate((data) => {
     window.consoleData = data;
     window.saved = [];
+    window.consolePolls = 0;
     document.querySelector("comfort-sense-panel").hass = {
       states: {},
       locale: { language: "en-US" },
@@ -189,6 +190,7 @@ const assert = require("node:assert/strict");
           consoleData.entries[0].revision = "saved";
           return { saved: true };
         }
+        window.consolePolls++;
         return JSON.parse(JSON.stringify(consoleData));
       },
     };
@@ -221,6 +223,51 @@ const assert = require("node:assert/strict");
     }
     await page.setViewportSize({ width: 1440, height: 1400 });
   }
+  await page.getByRole("tab", { name: "Rooms", exact: true }).click();
+  // Both HA state events and the periodic console refresh rebuild Overview.
+  // User-opened sections, keyboard focus and reading position must survive both.
+  await page.getByRole("tab", { name: "Overview", exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByText("Heating & learning details", { exact: true }).click();
+  const beforeRefresh = await page.locator("comfort-sense-panel").evaluate((el) => {
+    const summary = el.shadowRoot.querySelector(".diagnostics summary");
+    summary.focus();
+    return el.shadowRoot.querySelector("main").scrollTop;
+  });
+  await page.locator("comfort-sense-panel").evaluate((el) => {
+    el.hass = {
+      ...el._hass,
+      states: {
+        "climate.upstairs": {
+          state: "heat",
+          attributes: {
+            current_temperature: 69.2,
+            temperature: 65,
+            requested_duty_percent: 37,
+            active_room: "Bedroom",
+            control_reason: "Heater unavailable",
+          },
+        },
+      },
+    };
+  });
+  await page.getByText("37% demand", { exact: true }).waitFor();
+  const viewState = () =>
+    page.locator("comfort-sense-panel").evaluate((el) => ({
+      open: el.shadowRoot.querySelector(".diagnostics").open,
+      scroll: el.shadowRoot.querySelector("main").scrollTop,
+      focused: el.shadowRoot.activeElement === el.shadowRoot.querySelector(".diagnostics summary"),
+    }));
+  assert.deepEqual(await viewState(), { open: true, scroll: beforeRefresh, focused: true });
+  await page.locator("comfort-sense-panel").evaluate((el) => el.load(true));
+  assert.deepEqual(await viewState(), { open: true, scroll: beforeRefresh, focused: true });
+  const polls = await page.evaluate(() => window.consolePolls);
+  await page.waitForFunction((previous) => window.consolePolls > previous, polls, { timeout: 20000 });
+  assert.deepEqual(await viewState(), { open: true, scroll: beforeRefresh, focused: true });
+  await page.getByText("Heating & learning details", { exact: true }).click();
+  await page.locator("comfort-sense-panel").evaluate((el) => el.load(true));
+  assert.equal((await viewState()).open, false);
+  await page.setViewportSize({ width: 1440, height: 1400 });
   await page.getByRole("tab", { name: "Rooms", exact: true }).click();
   assert.equal(await page.getByRole("combobox", { name: "Temperature sensors" }).count(), 2);
   const order = await page.locator("comfort-sense-panel").evaluate((el) => {
@@ -323,8 +370,51 @@ const assert = require("node:assert/strict");
   });
   if (output) await page.screenshot({ path: path.join(output, "overview-dark.png"), fullPage: true });
   assert.deepEqual(errors, []);
+  // Section state survives settings edits and navigation, and follows room IDs
+  // rather than list positions. Each thermostat has independent view state.
+  await page.getByRole("tab", { name: "Rooms", exact: true }).click();
+  await page.getByText("Room behavior", { exact: true }).click();
+  await page.getByRole("button", { name: "Fast 10-minute history", exact: true }).click();
+  assert.equal(
+    await page.locator('details[data-disclosure="room-behavior"]').evaluate((el) => el.open),
+    true,
+  );
+  await page.locator('details[data-disclosure="room-tuning:bedroom"] > summary').click();
+  await page.locator("comfort-sense-panel").evaluate((el) => {
+    el.draft.rooms.reverse();
+    el.render();
+  });
+  assert.equal(
+    await page.locator('details[data-disclosure="room-tuning:bedroom"]').evaluate((el) => el.open),
+    true,
+  );
+  assert.equal(
+    await page.locator('details[data-disclosure="room-tuning:living"]').evaluate((el) => el.open),
+    false,
+  );
+  await page.getByRole("button", { name: "Discard", exact: true }).click();
+  await page.getByRole("tab", { name: "Preferences", exact: true }).click();
+  await page.getByRole("tab", { name: "Rooms", exact: true }).click();
+  assert.equal(
+    await page.locator('details[data-disclosure="room-behavior"]').evaluate((el) => el.open),
+    true,
+  );
+  await page.getByRole("tab", { name: "Overview", exact: true }).click();
+  await page.getByText("Heating & learning details", { exact: true }).click();
+  await page.locator("comfort-sense-panel").evaluate(async (el) => {
+    const other = JSON.parse(JSON.stringify(window.consoleData.entries[0]));
+    other.entry_id = "downstairs";
+    other.name = "Downstairs";
+    window.consoleData.entries.push(other);
+    await el.load(true);
+  });
+  await page.getByRole("combobox", { name: "Choose thermostat", exact: true }).selectOption("downstairs");
+  assert.equal((await viewState()).open, false);
+  await page.getByRole("combobox", { name: "Choose thermostat", exact: true }).selectOption("upstairs");
+  assert.equal((await viewState()).open, true);
+  assert.deepEqual(errors, []);
   console.log(
-    "Console browser checks passed: entity filters, preserved IDs, Fahrenheit payload, manual PID visibility, schedule draft, active-control review, mobile layout and logo.",
+    "Console browser checks passed: live/poll refresh state, focus and scroll; settings edits, stable room IDs and thermostat isolation; entity filters, Fahrenheit payload, schedule draft, active-control review, mobile layout and logo.",
   );
   await browser.close();
 })().catch((error) => {

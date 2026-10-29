@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.1a1
+
+- Preserve expanded and collapsed sections during live HA state updates, periodic refreshes, settings edits and tab navigation.
+- Retain scroll position and focused disclosure headings across refreshes; keep view state separate for each thermostat and use stable room/schedule IDs.
+- Add a browser regression that reproduces the original failure, exercises the actual 15-second timer and verifies settings/navigation isolation.
+- No thermostat configuration or heating behavior changes. Restart HA after updating to load the corrected console module.
+
 ## 0.8.0a1
 
 - Reorganize Overview around one operating status, next action, compact temperature/source strip and required/optional connection tiles.
