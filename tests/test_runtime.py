@@ -204,14 +204,92 @@ class RuntimeTests(unittest.IsolatedAsyncioTestCase):
         await self.r.change(preset="away")
         self.assertEqual(self.r.target_temperature,18)
 
-    async def test_restart_never_restores_heating(self):
+    async def test_new_and_legacy_install_without_saved_mode_starts_off(self):
         self.assertEqual(self.r.mode,"off")
         self.r.store.data={"preset":"boost","source":"nonexistent","targets":{},"models":{}}
         await self.r.start()
-        # start() is only called on a fresh runtime in HA.
         self.assertEqual(self.r.preset,"comfort")
         self.assertEqual(self.r.source,"Auto")
         self.assertEqual(self.r.mode,"off")
+        await self.r.stop()
+
+    async def test_restart_restores_heat_intent_but_waits_full_minimum_off(self):
+        self.set("sensor.a","10","°C");self.set("sensor.b","10","°C")
+        self.r.store.data={"mode":"heat","control_signature":self.r.control_signature()}
+        await self.r.start()
+        self.assertEqual(self.r.mode,"heat")
+        self.assertFalse(self.r.proposed)
+        self.advance(299);await self.r.tick()
+        self.assertFalse(self.r.proposed)
+        self.advance(1);await self.r.tick()
+        self.assertTrue(self.r.proposed)
+        self.assertEqual(self.hass.services.calls,[])  # Shadow remains Shadow.
+        await self.r.stop()
+
+    async def test_restored_heat_confirms_on_relay_is_off_before_starting_timer(self):
+        self.r.config["shadow"]=False
+        self.set("switch.heat","on")
+        self.set("sensor.a","10","°C");self.set("sensor.b","10","°C")
+        self.r.store.data={"mode":"heat","control_signature":self.r.control_signature()}
+        await self.r.start()
+        self.assertTrue(self.r.startup_pending)
+        self.assertFalse(self.r.proposed)
+        self.assertEqual(self.hass.services.calls[-1][1],"turn_off")
+        self.advance(30);self.set("switch.heat","off");await self.r.tick()
+        self.assertFalse(self.r.startup_pending)
+        self.advance(299);await self.r.tick()
+        self.assertFalse(self.r.proposed)
+        self.advance(1);await self.r.tick()
+        self.assertTrue(self.r.proposed)
+        await self.r.stop()
+
+    async def test_saved_off_unknown_mode_or_changed_equipment_does_not_resume_heat(self):
+        for mode,signature in (("off",self.r.control_signature()),("invalid",self.r.control_signature()),
+                               ("heat",["switch.changed",True]),("heat",["switch.heat",False])):
+            r=runtime.Runtime(self.hass,self.entry)
+            r.store.data={"mode":mode,"control_signature":signature}
+            await r.start()
+            self.assertEqual(r.mode,"off")
+            self.assertFalse(r.proposed)
+            await r.stop()
+
+    async def test_mode_changes_are_persisted_immediately(self):
+        await self.r.change(mode="heat")
+        self.assertEqual(self.r.store.data["mode"],"heat")
+        self.assertEqual(self.r.store.data["control_signature"],self.r.control_signature())
+        await self.r.change(mode="off")
+        self.assertEqual(self.r.store.data["mode"],"off")
+
+    async def test_storage_failure_does_not_prevent_manual_off_command(self):
+        self.r.config["shadow"]=False
+        self.r.mode="heat"
+        self.set("switch.heat","on")
+        async def fail_save(data):raise OSError("storage unavailable")
+        self.r.store.async_save=fail_save
+        with self.assertRaises(OSError):
+            await self.r.change(mode="off")
+        self.assertFalse(self.r.proposed)
+        self.assertEqual(self.hass.services.calls[-1][1],"turn_off")
+
+    async def test_restored_heat_still_obeys_warm_room_cutoff(self):
+        self.set("sensor.a","25","°C")
+        self.r.store.data={"mode":"heat","control_signature":self.r.control_signature()}
+        await self.r.start()
+        self.assertEqual(self.r.mode,"heat")
+        self.assertFalse(self.r.proposed)
+        self.assertIn("Warm room protection",self.r.reason)
+        await self.r.stop()
+
+    async def test_restored_heat_does_not_energize_unknown_relay(self):
+        self.r.config["shadow"]=False
+        self.set("switch.heat","unavailable")
+        self.r.store.data={"mode":"heat","control_signature":self.r.control_signature()}
+        await self.r.start()
+        self.assertEqual(self.r.mode,"heat")
+        self.assertEqual(self.r.reason,"Heater unavailable")
+        self.assertFalse(self.r.proposed)
+        self.assertTrue(all(c[1]=="turn_off" for c in self.hass.services.calls))
+        await self.r.stop()
 
     async def test_each_room_has_independent_manual_gains(self):
         self.entry.data["rooms"][0].update(kp=0.4,ki=0.00002,kd=20,tuning_mode="manual")

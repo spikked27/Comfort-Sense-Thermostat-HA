@@ -45,7 +45,7 @@ async def test_comfort_config_does_not_interrupt_away_and_tracks_dial_after_rest
     await hass.config_entries.async_reload(entry.entry_id)
     await hass.async_block_till_done()
     assert float(hass.states.get(comfort).state)==pytest.approx(70)
-    assert hass.data[DOMAIN][entry.entry_id].mode=="off"
+    assert hass.data[DOMAIN][entry.entry_id].mode=="heat"
 
 
 async def test_upgraded_preset_entity_ids_remain_stable(hass):

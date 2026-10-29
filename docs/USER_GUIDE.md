@@ -108,8 +108,7 @@ together. Ordinary control uses one setpoint; schedules can temporarily prioriti
 **Does it need internet?** Control and learning are local. HACS uses GitHub for
 installation and updates.
 
-**Why did a restart stop heating?** This alpha starts Off after restarts and options
-reloads. Select Heat to resume.
+**Why did a restart stop heating?** Versions through 0.5.2 deliberately started Off. Version 0.5.3 saves Heat/Off immediately and restores it after restart or reload. Older versions did not save this choice, so select Heat once after the first upgrade. New installs, invalid saved modes, and changes to the heating relay or Shadow mode start Off. No old output pulse is restored: the controller confirms the relay is Off and waits its full minimum-off time before heating. Missing inputs and room protections still prevent output.
 
 **Where is learning data?** A bounded buffer is kept in HA `.storage`. It can reveal
 household heating patterns; do not attach it to a public issue.
@@ -123,3 +122,9 @@ On the device page, open **Configuration** to change grouping tolerance, reactio
 Automatic PID tuning is the default. Manual gain entities are hidden by default; the Advanced/room Manual forms remain available. See [phone-alarm morning comfort](SCHEDULING.md#phone-alarm-morning-comfort) for ready-by heating.
 
 Preset temperatures are grouped under **Temperature Preset Away**, **Temperature Preset Boost**, **Temperature Preset Comfort** and **Temperature Preset Sleep** on the device Configuration page. Comfort edits the saved normal thermostat target; it stays synchronized with the dial. Editing Comfort during Away, Sleep, Boost or a schedule does not interrupt that active mode or plan. Existing preset entity IDs stay unchanged on upgrade.
+
+## Furnace timing protections
+
+Open **Settings → Devices & services → Comfort Sense → Configure → Advanced → Relay timing and safety**. **Minimum relay on time** and **Minimum relay off time** default to **300 seconds (5 minutes)**; **Slow PWM period** defaults to **1200 seconds (20 minutes)**. Small heat requests accumulate into minimum-length pulses. Off, warm-room protection and absolute safety limits can terminate a run early.
+
+The separate **Room protection buffer** is on the thermostat **device page → Configuration**; it sets the warm/cold temperature boundaries for all rooms. Timing settings remain in Advanced to keep the ordinary Configuration list short.

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.3a1
+
+- Persist Heat/Off selections immediately and restore them after restart or integration reload.
+- Resume only user intent; discard old relay pulses and wait a fresh minimum-off interval after observed Off.
+- Confirm a still-on relay is Off before resuming; unavailable sensors, warm-room limits and Shadow remain authoritative.
+- New/legacy installations without a saved mode start Off; changing the relay or Shadow mode also requires re-enabling Heat.
+- Document timing protections under Configure → Advanced → Relay timing and safety.
+
 ## 0.5.2a1
 
 - Accept wake-up alarms only inside a configurable local-time window, default 03:00–12:00.

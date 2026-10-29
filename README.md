@@ -69,8 +69,8 @@ it is not yet included in the default HACS catalog.
 
 > [!IMPORTANT]
 > **Experimental alpha — start in Shadow mode.** Active control needs commissioning
-> on your heating system. HA restarts and options reloads leave the thermostat **Off**
-> in this alpha; select Heat to resume. Disable the previous controller before
+> on your heating system. Heat/Off choices survive restarts and options reloads.
+> New installs and the first upgrade from versions without saved HVAC mode start Off; select Heat once. Disable the previous controller before
 > turning Shadow off. Temperature fields and the climate card use your
 > Home Assistant **Celsius or Fahrenheit** preference.
 

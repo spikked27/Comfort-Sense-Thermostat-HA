@@ -29,8 +29,7 @@ targets are preserved while forms and number controls use your HA unit preferenc
 
 After removing competing control, turn Shadow off in Comfort Sense Thermostat options and select
 Heat. The first relay turn-on respects a full minimum-off period after startup.
-The alpha starts Off on restart/reload; make enabling Heat an explicit commissioning
-step. Never leave two active controllers writing the same relay.
+New installations and relay/Shadow changes start Off; make enabling Heat an explicit commissioning step. Version 0.5.3 restores subsequent Heat/Off selections across restart/reload. Never leave two active controllers writing the same relay.
 
 For rollback, switch Comfort Sense Thermostat Off, restore Shadow mode or unload it, restore the
 old controller, and re-enable its automations. Unloading active Comfort Sense Thermostat requests
@@ -62,3 +61,7 @@ Morning comfort from phone alarms**. Enable it, select the phones' next-alarm
 sensors and choose the target, room source and hold duration. Optionally associate
 each phone with a person under Scheduling. No alarm sensors or persons are selected
 automatically during upgrade. See [scheduling](SCHEDULING.md).
+
+## Updating to 0.5.3
+
+Versions through 0.5.2 did not save HVAC mode. After this first update and restart, select Heat once on thermostats you want enabled. From then on, Heat/Off changes are saved immediately and survive restarts and integration reloads. An intentionally Off thermostat stays Off. No relay pulse, minimum-time timer or occupancy history is restored. The controller confirms observed Off and starts a fresh minimum-off interval. Changing the heating relay or Shadow setting requires selecting Heat again. Existing temperatures, room definitions, schedules and learning remain stored.

@@ -42,7 +42,7 @@ binding above 10 under its Advanced settings to override morning comfort.
 If no valid alarm exists, native weekly schedules continue independently.
 Off stays Off, confirmed Away suppresses schedules, and manual Boost takes
 temporary priority. Shadow calculates plans without commanding the heater.
-Restart still leaves the thermostat Off; select Heat to resume.
+Heat/Off selection is restored after restart; an Off thermostat remains Off. New installs and the first upgrade from versions without saved HVAC mode need Heat selected once.
 
 ## Learning and ready-by status
 

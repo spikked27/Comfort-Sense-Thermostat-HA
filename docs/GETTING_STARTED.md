@@ -109,7 +109,7 @@ Open the integration's **Configure** menu, choose **Thermostat basics**, turn Sh
 and finish the review. Select **Heat** after the reload. Comfort Sense now commands
 the switch while respecting the configured cycle limits.
 
-**Restarts and options reloads leave the alpha Off.** Select Heat to resume.
+**Heat/Off choices survive restarts and options reloads.** The output is recalculated from fresh inputs after a full minimum-off interval. New installs and the first upgrade from versions without saved HVAC mode start Off; select Heat once. Changing the heating relay or Shadow mode also starts Off for commissioning.
 
 ## Troubleshooting
 

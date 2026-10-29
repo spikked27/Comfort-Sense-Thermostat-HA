@@ -1,6 +1,6 @@
 [project]
 name = "Comfort-Sense-Thermostat-HA"
-version = "0.5.2a1"
+version = "0.5.3a1"
 description = "Occupancy-aware PID heating with passive thermal identification"
 requires-python = ">=3.12"
 license = "MIT"

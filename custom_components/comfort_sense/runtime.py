@@ -72,10 +72,15 @@ class Runtime:
         self.lock = asyncio.Lock()
         self.store = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
         self.closed = False
+        self.startup_pending=False
 
     async def start(self):
         saved = await self.store.async_load() or {}
-        # Always start off; never restore an energized output or stale occupancy.
+        # Restore user intent only, never an energized pulse or stale occupancy.
+        self.mode=saved.get("mode","off") if saved.get("control_signature")==self.control_signature() else "off"
+        if self.mode not in ("off","heat"):
+            self.mode="off"
+        self.startup_pending=self.mode=="heat"
         self.preset = saved.get("preset", "comfort")
         if self.preset not in ("comfort", "away", "sleep"):
             self.preset = "comfort"
@@ -126,6 +131,9 @@ class Runtime:
     def signature(self, room):
         sensors = sorted(room["temperature_sensors"]) if room["id"] != AVERAGE else sorted([r["id"],sorted(r["temperature_sensors"])] for r in self.rooms)
         return [self.config["heater"], self.config["outdoor_sensor"], sensors]
+
+    def control_signature(self):
+        return [self.config["heater"],self.config["shadow"]]
 
     @callback
     def changed(self, event):
@@ -269,6 +277,9 @@ class Runtime:
             await self.refresh_schedules(now)
             state = self.hass.states.get(self.config["heater"])
             self.actual = (state.state == "on") if state and state.state in ("on", "off") else None
+            if self.startup_pending and self.actual is False:
+                self.startup_pending=False
+                self.relay=Relay(self.config["pwm_seconds"],self.config["min_on_seconds"],self.config["min_off_seconds"])
             self.outdoor = self.numeric_temperature(self.config["outdoor_sensor"], now)
             home = self.home()
             if home is False:
@@ -354,11 +365,12 @@ class Runtime:
                     "lower":self.target_temperature-buffer if buffer else None,
                     "available":row["temperature"] is not None}
             hot_rooms=[row["name"] for row in self.guard_data.values() if row["hot"]]
-            forced = self.mode == "off" or not selected or high_temperature or bool(hot_rooms) or self.actual is None
+            forced = self.mode == "off" or self.startup_pending or not selected or high_temperature or bool(hot_rooms) or self.actual is None
             if self.mode == "off": reason = "Off"
             elif high_temperature: reason = "Safety temperature limit"
             elif hot_rooms: reason = "Warm room protection: " + ", ".join(hot_rooms)
             elif self.actual is None: reason = "Heater unavailable"
+            elif self.startup_pending: reason = "Startup: waiting for heater off confirmation"
             elif not selected: reason = "Selected room has no valid temperature" if source not in ("Auto", "Average") else "No valid temperatures"
             duties = {}
             for room in self.rooms:
@@ -551,7 +563,8 @@ class Runtime:
         self.notify()
 
     def saved(self):
-        return {"preset": self.preset, "source": self.source, "comfort_temperature":self.comfort_temperature,
+        return {"mode":self.mode,"control_signature":self.control_signature(),
+                "preset": self.preset, "source": self.source, "comfort_temperature":self.comfort_temperature,
                 "morning":self.morning.saved(),"arrival_corrections":self.arrivals.corrections,
                 "models": {k:v.to_dict() for k,v in self.models.items()},
                 "samples": {k:[asdict(s) for s in v] for k,v in self.samples.items()},
@@ -565,8 +578,16 @@ class Runtime:
         for key, value in changes.items():
             setattr(self, key, value)
         self.force_tick = True  # act immediately without inventing occupancy time
-        self.save_later()
-        await self.tick()
+        if "mode" in changes:
+            # Persist explicit Off/Heat immediately, including before an unexpected restart.
+            try:
+                await self.store.async_save(self.saved())
+            finally:
+                # A storage failure must never prevent an explicit Off reaching the relay.
+                await self.tick()
+        else:
+            self.save_later()
+            await self.tick()
 
     async def configure(self, values, room_id=None):
         """Persist entity settings immediately, without unloading an active controller."""
