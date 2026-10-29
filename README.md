@@ -33,6 +33,7 @@ You can also pin a room or use the whole-home average.
 | **Room-aware comfort** | One thermostat target follows the most occupied room or equally averages rooms within an adjustable occupancy tolerance. |
 | **A proper Average mode** | An equal-room average has its own PID controller and tuning settings, including in Away mode. |
 | **Your choice of tuning** | Automatic validated tuning by default; optional manual tuning for each room and Average. |
+| **PID memory and diagnostics** | Keep maintenance compensation on target increases; safely recover it after brief restarts. Download P/I/D diagnostics without extra controls. |
 | **Learning for slow heat** | Learns from ordinary heating, rather than forcing a rapid on/off autotune experiment. |
 | **Outdoor temperature** | Helps estimate heat loss and how early a room needs to start warming. |
 | **Morning comfort** | Use weekly blocks or phone alarms as arrival times; learned models estimate warm-up lead. |

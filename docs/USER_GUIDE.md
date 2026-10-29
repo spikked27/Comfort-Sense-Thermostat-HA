@@ -128,3 +128,9 @@ Preset temperatures are grouped under **Temperature Preset Away**, **Temperature
 Open **Settings → Devices & services → Comfort Sense → Configure → Advanced → Relay timing and safety**. **Minimum relay on time** and **Minimum relay off time** default to **300 seconds (5 minutes)**; **Slow PWM period** defaults to **1200 seconds (20 minutes)**. Small heat requests accumulate into minimum-length pulses. Off, warm-room protection and absolute safety limits can terminate a run early.
 
 The separate **Room protection buffer** is on the thermostat **device page → Configuration**; it sets the warm/cold temperature boundaries for all rooms. Timing settings remain in Advanced to keep the ordinary Configuration list short.
+
+## Understanding PID demand
+
+Raising the target now keeps the same room/controller's maintenance compensation. A larger setback clears positive accumulated bias. Brief restarts can restore bounded compensation only if fresh readings and the selected room/group, target, equipment and gains still match; Off and safety/protection resets win. See [control details](CONTROL.md#setpoint-memory-and-short-restarts).
+
+Use **Download diagnostics** on the integration menu for P/I/D/outdoor contribution details. **Heat demand** attributes show the current limiting condition and restart-memory result without adding more everyday controls.

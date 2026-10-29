@@ -95,6 +95,7 @@ class Duty(ComfortSenseEntity, SensorEntity):
                 "minimum_on_minutes":r.config["min_on_seconds"]/60,
                 "minimum_off_minutes":r.config["min_off_seconds"]/60,
                 "proposed_relay_on":r.proposed,"observed_relay_on":r.actual,
+                "limiting_condition":r.limiting_condition(),"restart_memory":r.memory_restore_status,
                 "shadow_mode":r.config["shadow"]}
 
 

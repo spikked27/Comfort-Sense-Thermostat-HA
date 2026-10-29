@@ -1,5 +1,5 @@
 """Deterministic controls. Time in seconds, temperature in C, duty in [0, 1]."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from collections import deque
 import math
 
@@ -124,6 +124,7 @@ class PID:
     derivative: float = 0.0
     output: float = 0.0
     last_target: float | None = None
+    terms: dict = field(default_factory=dict)
 
     def update(self, temperature, target, dt, feedforward=0.0, active=True,
                constrained=False):
@@ -137,17 +138,26 @@ class PID:
             self.integral = 0.0
             self.output = 0.0
             self.last_target = target
+            self.terms={"active":False,"proportional":0.0,"integral":0.0,"derivative":0.0,
+                        "feedforward":0.0,"unclamped":0.0,"output":0.0,"limit":"inactive"}
             return 0.0
         error = target - temperature
         base = feedforward + self.kp * error - self.kd * self.derivative
-        if self.last_target is not None and abs(target - self.last_target) > 0.2:
-            # Remove stored excess heat after a setback; retain bias on small changes.
-            self.integral = min(self.integral, max(0.0, self.output - base))
+        if self.last_target is not None and self.last_target-target > 0.2 and temperature>=target:
+            # Shed excess heat after a setback already reached by the room.
+            # Keep maintenance bias if a reduced target is still above the room.
+            # Raising the same source's target
+            # retains its maintenance compensation and produces a proportional response.
+            self.integral = min(self.integral,0.0)
         raw = base + self.integral
         if not constrained and (0 < raw < 1 or raw >= 1 and error < 0 or raw <= 0 and error > 0):
             self.integral = clamp(self.integral + self.ki * error * dt, -0.5, 1)
         self.output = clamp(base + self.integral)
         self.last_target = target
+        self.terms={"active":True,"proportional":self.kp*error,"integral":self.integral,
+                    "derivative":-self.kd*self.derivative,"feedforward":feedforward,
+                    "unclamped":base+self.integral,"output":self.output,
+                    "limit":"actuator" if constrained else "high" if base+self.integral>=1 else "low" if base+self.integral<=0 else "none"}
         return self.output
 
     def tune(self, kp, ki, kd=0.0):
