@@ -4,6 +4,8 @@ import pytest
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.comfort_sense.panel import checked_config, snapshot, current_config
+from custom_components.comfort_sense.learning import ThermalModel
+from homeassistant.util import dt as dt_util
 
 DOMAIN="comfort_sense"
 
@@ -125,3 +127,20 @@ async def test_rooms_and_schedule_validation_is_atomic(hass,hass_ws_client):
     response=await ws.receive_json()
     assert response["error"]["code"]=="invalid_config"
     assert current_config(hass,entry)==before
+
+
+async def test_outdoor_compensation_explains_learned_and_manual_modes(hass):
+    entry=await setup(hass)
+    runtime=hass.data[DOMAIN][entry.entry_id]
+    runtime.models["_average"]=ThermalModel(1.8,0.06,0.15,1800,0.1,0.9,dt_util.utcnow().timestamp(),800)
+    await runtime.change(mode="heat",source="Average")
+    report=runtime.outdoor_compensation()
+    assert report["status"]=="Learned"
+    assert report["coefficient"]==pytest.approx(0.06/1.8)
+    assert report["applied_duty_percent"]>0
+    assert runtime.target_origin=="Comfort preset"
+    await runtime.configure({"average_tuning_mode":"manual"})
+    assert runtime.outdoor_compensation()["status"]=="Manual PID · compensation off"
+    assert runtime.outdoor_compensation()["coefficient"] is None
+    await runtime.change(preset="away")
+    assert runtime.target_origin=="Away preset"

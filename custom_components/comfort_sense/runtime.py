@@ -261,8 +261,11 @@ class Runtime:
         controllers=members if key=="_group" else [key] if key else []
         models=[self.model(rid,self.last_tick) for rid in controllers]
         learned=[model for rid,model in zip(controllers,models) if model and self.applied.get(rid)==model.fitted_at]
+        manual=bool(controllers) and all((self.config["average_tuning_mode"] if rid==AVERAGE else
+            next(room["tuning_mode"] for room in self.rooms if room["id"]==rid))=="manual" for rid in controllers)
         status=("No outdoor sensor" if not self.config["outdoor_sensor"] else "Outdoor reading unavailable" if self.outdoor is None
-                else "Waiting for accepted model" if not learned else "Learned" if len(learned)==len(controllers) else "Partly learned")
+                else "Manual PID · compensation off" if manual else "Waiting for accepted model" if not learned
+                else "Learned" if len(learned)==len(controllers) else "Partly learned")
         return {"method":"learned heat-loss feedforward","status":status,
             "coefficient":sum(model.loss_rate/model.heat_rate for model in learned)/len(controllers) if learned else None,
             "coefficient_unit":"duty fraction per °C","applied_duty_percent":round(pid.terms.get("feedforward",0)*100,2) if pid else 0,
