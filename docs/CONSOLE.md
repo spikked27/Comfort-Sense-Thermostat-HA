@@ -6,6 +6,11 @@ needed. The console is available to administrators and follows HA's light/dark
 theme and temperature units. The existing Configure flow and entity controls
 remain available.
 
+Expanded sections and reading position are remembered while the console is open,
+including live updates, periodic refreshes, settings edits and switching sections.
+Each thermostat has its own view state. This does not change saved thermostat
+settings or persist across a full browser reload.
+
 ![Console overview with example data](assets/console.png)
 
 ## Start with Overview
