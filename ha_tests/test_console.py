@@ -46,7 +46,7 @@ async def test_panel_assets_and_admin_snapshot(hass,hass_client,hass_ws_client):
 
 async def test_console_rejects_non_admin_reads_and_writes(hass,hass_ws_client,hass_read_only_user):
     entry=await setup(hass)
-    refresh=await hass.auth.async_create_refresh_token(hass_read_only_user)
+    refresh=await hass.auth.async_create_refresh_token(hass_read_only_user,client_id="https://console-test.invalid/")
     token=hass.auth.async_create_access_token(refresh)
     ws=await hass_ws_client(hass,token)
     for number,payload in enumerate(({"type":"comfort_sense/console"},

@@ -80,6 +80,10 @@ eligible member models. Without an accepted model, compensation stays at zero
 and the status explains why. Manual PID mode does not apply learned feedforward.
 Outdoor temperature still informs model-based warm-up forecasts when available.
 
+The separate `target_origin` attribute identifies the preset, home-presence Away
+override, or active schedule/alarm currently providing the target. It remains
+visible even when a protection condition temporarily blocks heating.
+
 ## Save deliberately
 
 Edits are drafts until **Review & save → Save changes**. Switching sections keeps
