@@ -20,6 +20,8 @@ jobs:
         with:
           python-version: '3.14'
       - run: pip install pytest-homeassistant-custom-component 'homeassistant>=2026.10.0,<2026.11.0'
+      - name: Install the frontend matching the tested HA release
+        run: python -c "import importlib.resources as r, json, subprocess, sys; deps=json.loads(r.files('homeassistant.components.frontend').joinpath('manifest.json').read_text())['requirements']; subprocess.check_call([sys.executable,'-m','pip','install',*deps])"
       - run: python -m pytest ha_tests -v
   console:
     runs-on: ubuntu-latest

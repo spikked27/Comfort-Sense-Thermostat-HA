@@ -23,6 +23,11 @@ Room-aware heating for Home Assistant, with gradual occupancy changes and learni
 
 ## What it does
 
+**Visual setup is built in.** Open **Comfort Sense** in the HA sidebar for a live
+health overview, visual room cards, searchable sensor pickers, phone alarms and
+native Schedule-helper connections. Advanced/manual settings stay out of the way.
+[Console guide →](docs/CONSOLE.md)
+
 Most thermostats measure one spot in your home. Comfort Sense uses the rooms you
 actually spend time in. Add your room temperature and occupancy sensors, choose
 one thermostat target, and let Auto follow the most occupied room using a moving occupancy window.
@@ -107,6 +112,7 @@ Morning comfort can also follow the earliest next alarm from selected phones, wi
 ## Documentation and support
 
 - [Getting started](docs/GETTING_STARTED.md) — installation, first room and commissioning.
+- [Visual console](docs/CONSOLE.md) — room setup, entity selection and live input health.
 - [User guide](docs/USER_GUIDE.md) — controls, schedules, tuning and common questions.
 - [Migration](docs/MIGRATION.md) — replace Smart Thermostat and room templates.
 - [Control design](docs/CONTROL.md) — PID units, thermal models and learning quality gates.

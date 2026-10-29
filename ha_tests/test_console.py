@@ -1,7 +1,6 @@
 """Console permissions, input validation, conflict protection and real HA reloads."""
 from copy import deepcopy
 import pytest
-from homeassistant.const import UnitOfTemperature
 from homeassistant.util.unit_system import US_CUSTOMARY_SYSTEM
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 from custom_components.comfort_sense.panel import checked_config, snapshot, current_config
@@ -70,6 +69,11 @@ async def test_fahrenheit_save_survives_reload_and_conflicts_are_rejected(hass,h
     assert runtime.config["room_buffer"]==pytest.approx(2)
     assert runtime.config["min_on_seconds"]==360
     assert runtime.mode=="off"
+    attributes=hass.states.get("climate.console_thermostat_thermostat").attributes
+    assert attributes["outdoor_temperature"]==7
+    assert attributes["outdoor_temperature_unit"]=="°C"
+    assert attributes["outdoor_compensation"]["coefficient"] is None
+    assert attributes["outdoor_compensation"]["status"]=="Waiting for accepted model"
     await ws.send_json({**message,"id":2})
     response=await ws.receive_json()
     assert response["error"]["code"]=="conflict"
