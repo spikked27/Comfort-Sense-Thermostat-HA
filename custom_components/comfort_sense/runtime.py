@@ -171,7 +171,7 @@ class Runtime:
             "gains":[pid.kp,pid.ki,pid.kd]}
 
     def restore_control_memory(self,key,pid,members,temperature,target,now,allowed):
-        if self.pending_pid_memory is None or not allowed:
+        if self.pending_pid_memory is None or not allowed or not self.memory_inputs_ready(now):
             return
         bias,status=recovered_bias(self.pending_pid_memory,self.memory_context(key,pid,members,temperature,target,now))
         self.memory_restore_status=status
@@ -179,7 +179,51 @@ class Runtime:
         if bias is not None:
             pid.integral=bias
 
+    def memory_inputs_ready(self,now):
+        """Defer validation while startup entities reconnect, without extending age."""
+        saved=self.pending_pid_memory
+        if saved is None:
+            return False
+        try:
+            age=now-saved["time"]
+            if not math.isfinite(age) or not 0<=age<=MAX_AGE:
+                raise ValueError("expired")
+            members=saved["members"]
+            if not isinstance(members,list) or not members or not set(members)<={r["id"] for r in self.rooms}:
+                raise ValueError("invalid members")
+        except (KeyError,TypeError,ValueError,OverflowError):
+            self.pending_pid_memory=None
+            self.memory_restore_status="Saved compensation expired or invalid"
+            return False
+        entities=[self.config["heater"]]
+        temperature_entities={eid for room in self.rooms if room["id"] in members for eid in room["temperature_sensors"]}
+        temperature_entities.add(self.config["outdoor_sensor"])
+        for room in self.rooms:
+            if room["id"] in members:
+                entities.extend(room["temperature_sensors"])
+            if self.source=="Auto":
+                entities.extend(room["occupancy_sensors"])
+        if self.config["outdoor_sensor"]:
+            entities.append(self.config["outdoor_sensor"])
+        for eid in entities:
+            state=self.hass.states.get(eid)
+            if not state or state.state in ("unknown","unavailable") or state.attributes.get("restored"):
+                self.memory_restore_status="Waiting for startup entities"
+                return False
+            if eid in temperature_entities and self.numeric_temperature(eid,now) is None:
+                self.memory_restore_status="Waiting for valid startup temperatures"
+                return False
+            if eid==self.config["heater"]:
+                continue
+            stamp=getattr(state,"last_reported",getattr(state,"last_updated",None))
+            if not stamp or not -5<=now-stamp.timestamp()<=MAX_AGE:
+                self.memory_restore_status="Waiting for fresh startup reports"
+                return False
+        return True
+
     def pid_memory_snapshot(self):
+        if self.mode=="heat" and isinstance(self.pending_pid_memory,dict):
+            return deepcopy(self.pending_pid_memory)  # preserve the original timestamp
         key,pid,members=self.primary_controller()
         if self.mode!="heat" or pid is None or not pid.terms.get("active") or pid.ki<=0:
             return None
@@ -228,7 +272,7 @@ class Runtime:
 
     def numeric_temperature(self, entity_id, now):
         state = self.hass.states.get(entity_id)
-        if state is None or state.state in ("unknown", "unavailable"):
+        if state is None or state.state in ("unknown", "unavailable") or state.attributes.get("restored"):
             return None
         # last_reported includes identical readings on supported HA versions.
         stamp = getattr(state, "last_reported", state.last_updated).timestamp()
@@ -351,7 +395,7 @@ class Runtime:
             self.last_tick = now
             await self.refresh_schedules(now)
             state = self.hass.states.get(self.config["heater"])
-            self.actual = (state.state == "on") if state and state.state in ("on", "off") else None
+            self.actual = (state.state == "on") if state and state.state in ("on", "off") and not state.attributes.get("restored") else None
             if self.startup_pending and self.actual is False:
                 self.startup_pending=False
                 self.relay=Relay(self.config["pwm_seconds"],self.config["min_on_seconds"],self.config["min_off_seconds"])
@@ -447,9 +491,12 @@ class Runtime:
             elif self.actual is None: reason = "Heater unavailable"
             elif self.startup_pending: reason = "Startup: waiting for heater off confirmation"
             elif not selected: reason = "Selected room has no valid temperature" if source not in ("Auto", "Average") else "No valid temperatures"
-            if forced and reason!="Startup: waiting for heater off confirmation" and self.pending_pid_memory is not None:
-                self.pending_pid_memory=None
-                self.memory_restore_status="Discarded by protection or unavailable inputs"
+            if self.pending_pid_memory is not None:
+                if self.mode=="off" or high_temperature or hot_rooms:
+                    self.pending_pid_memory=None
+                    self.memory_restore_status="Discarded by Off or temperature protection"
+                else:
+                    self.memory_inputs_ready(now)
             duties = {}
             for room in self.rooms:
                 rid = room["id"]
@@ -666,6 +713,9 @@ class Runtime:
         if changes.get("mode")=="off":
             self.pending_pid_memory=None
             self.memory_restore_status="Cleared by Off"
+        elif isinstance(self.pending_pid_memory,dict) and any(k in changes and changes[k]!=self.pending_pid_memory.get(k) for k in ("source","preset")):
+            self.pending_pid_memory=None
+            self.memory_restore_status="Cleared by source or preset change"
         self.force_tick = True  # act immediately without inventing occupancy time
         if "mode" in changes:
             # Persist explicit Off/Heat immediately, including before an unexpected restart.
