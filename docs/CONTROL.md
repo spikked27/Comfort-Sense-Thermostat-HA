@@ -136,7 +136,9 @@ Per-room Warm/Cold buffers bound temperatures relative to the active thermostat 
 
 Raising the same controller's target retains its accumulated maintenance bias, so
 the proportional term can respond immediately. A target decrease greater than
-0.2°C clears positive bias. Smaller adjustments preserve it. Inactive controllers,
+0.2°C clears positive bias when the room is already at or above the new target.
+A reduced target that is still above the room keeps its maintenance bias.
+Smaller adjustments also preserve it. Inactive controllers,
 manual Off, unavailable inputs and protection shutdowns clear integral; changes
 to room-group or Average membership reset the appropriate controller history.
 

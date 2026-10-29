@@ -143,8 +143,10 @@ class PID:
             return 0.0
         error = target - temperature
         base = feedforward + self.kp * error - self.kd * self.derivative
-        if self.last_target is not None and self.last_target-target > 0.2:
-            # Shed excess heat after a setback. Raising the same source's target
+        if self.last_target is not None and self.last_target-target > 0.2 and temperature>=target:
+            # Shed excess heat after a setback already reached by the room.
+            # Keep maintenance bias if a reduced target is still above the room.
+            # Raising the same source's target
             # retains its maintenance compensation and produces a proportional response.
             self.integral = min(self.integral,0.0)
         raw = base + self.integral
