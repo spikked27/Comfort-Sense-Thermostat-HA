@@ -21,3 +21,15 @@ jobs:
           python-version: '3.14'
       - run: pip install pytest-homeassistant-custom-component 'homeassistant>=2026.10.0,<2026.11.0'
       - run: python -m pytest ha_tests -v
+  console:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --prefix /tmp/comfort-browser playwright@1.56.1
+      - run: /tmp/comfort-browser/node_modules/.bin/playwright install --with-deps chromium
+      - run: node scripts/console_smoke.cjs
+        env:
+          NODE_PATH: /tmp/comfort-browser/node_modules

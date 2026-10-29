@@ -7,6 +7,12 @@ from .scheduling import migrate_config
 from .settings import validate
 
 
+async def async_setup(hass,config):
+    from .panel import async_setup_panel
+    await async_setup_panel(hass)
+    return True
+
+
 async def async_migrate_entry(hass,entry):
     if entry.version>4:
         return False

@@ -61,6 +61,8 @@ class ComfortSenseClimate(ComfortSenseEntity, ClimateEntity):
                 "group_control":r.group_data,"room_protection":r.guard_data,
                 "requested_duty_percent": round(r.duty*100, 1), "proposed_relay_on": r.proposed,
                 "observed_relay_on": r.actual, "rooms": r.room_data,
+                "outdoor_temperature":r.outdoor,"outdoor_temperature_unit":"°C",
+                "outdoor_compensation":r.outdoor_compensation(),
                 "schedules": r.schedule_plans,"schedule_status":r.schedule_status,
                 "controller_temperature_unit":"°C",
                 "boost_until": dt_util.utc_from_timestamp(r.boost_until).isoformat() if r.preset == "boost" else None}

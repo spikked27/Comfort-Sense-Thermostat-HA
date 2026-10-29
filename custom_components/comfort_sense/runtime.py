@@ -254,6 +254,19 @@ class Runtime:
                 "requested_duty":self.duty,"proposed_relay_on":self.proposed,"observed_relay_on":self.actual,
                 "limiting_condition":self.limiting_condition(),"restart_memory":self.memory_restore_status}
 
+    def outdoor_compensation(self):
+        """Explain the physical feedforward term without inventing a manual Ke."""
+        key,pid,members=self.primary_controller()
+        controllers=members if key=="_group" else [key] if key else []
+        models=[self.model(rid,self.last_tick) for rid in controllers]
+        learned=[model for rid,model in zip(controllers,models) if model and self.applied.get(rid)==model.fitted_at]
+        status=("No outdoor sensor" if not self.config["outdoor_sensor"] else "Outdoor reading unavailable" if self.outdoor is None
+                else "Waiting for accepted model" if not learned else "Learned" if len(learned)==len(controllers) else "Partly learned")
+        return {"method":"learned heat-loss feedforward","status":status,
+            "coefficient":sum(model.loss_rate/model.heat_rate for model in learned)/len(controllers) if learned else None,
+            "coefficient_unit":"duty fraction per °C","applied_duty_percent":round(pid.terms.get("feedforward",0)*100,2) if pid else 0,
+            "active":bool(pid and pid.terms.get("active"))}
+
     @callback
     def changed(self, event):
         if event.data.get("entity_id","").startswith("schedule."):
