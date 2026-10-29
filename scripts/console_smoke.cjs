@@ -139,6 +139,12 @@ const assert = require("node:assert/strict");
             days: ["mon", "tue", "wed", "thu", "fri"],
             timeslots: ["04:30 - 06:30"],
           },
+          {
+            name: "Thermostat weekend schedule",
+            entity_id: "switch.weekend_schedule",
+            days: ["fri", "sat"],
+            timeslots: ["07:20 - 08:30"],
+          },
         ],
         live: {
           mode: "heat",
@@ -252,6 +258,7 @@ const assert = require("node:assert/strict");
   assert.equal(await page.getByText("Proportional · Kp", { exact: true }).count(), 1);
   await page.getByRole("button", { name: "Discard", exact: true }).click();
   await page.getByRole("tab", { name: "Schedules", exact: true }).click();
+  assert.equal(await page.getByText("Friday has overlapping schedules", { exact: true }).count(), 1);
   await page.getByText("Edit morning alarms", { exact: true }).click();
   const alarm = page
     .locator("sense-entity-picker")
