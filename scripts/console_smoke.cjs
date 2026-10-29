@@ -247,6 +247,20 @@ const assert = require("node:assert/strict");
   assert.equal(overflow, false);
   if (output) await page.screenshot({ path: path.join(output, "rooms-mobile.png"), fullPage: true });
   await page.getByRole("tab", { name: "Overview", exact: true }).click();
+  // HA's custom-panel ancestors need not declare a definite percentage height.
+  // The save bar must still stay within the viewport on a long page.
+  await page.evaluate(() => {
+    const wrapper=document.createElement("div");
+    document.body.append(wrapper);
+    wrapper.append(document.querySelector("comfort-sense-panel"));
+  });
+  const layout=await page.locator("comfort-sense-panel").evaluate(el=>({
+    panel:el.getBoundingClientRect().height,
+    footer:el.shadowRoot.querySelector(".footer").getBoundingClientRect().bottom,
+    viewport:innerHeight,
+  }));
+  assert.ok(layout.footer<=layout.viewport+1);
+  assert.ok(Math.abs(layout.panel-layout.viewport)<=1);
   if (output) await page.screenshot({ path: path.join(output, "overview-mobile.png"), fullPage: true });
   await page.setViewportSize({ width: 1440, height: 1100 });
   await page.locator("comfort-sense-panel").evaluate((el) => {

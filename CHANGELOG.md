@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.1a1
+
+- Keep the console navigation and save bar inside the viewport when HA's custom-panel container has no definite height.
+- Correct the empty Sleep-room label to "Use thermostat source" in both editors; existing selection behavior is unchanged.
+- Add a browser regression for the actual HA container layout. No household configuration is migrated or changed.
+
 ## 0.7.0a1
 
 - Bundle a themed administrator console in HA's sidebar and integration configuration page.

@@ -67,6 +67,8 @@ Off; use the normal thermostat controls to select Heat afterward.
 
 Advanced contains presets, Boost duration, Sleep room, Average PID tuning, sensor
 timeouts and fallback warm-up estimates. Average retains its own PID controller.
+The default Sleep-room choice uses the thermostat's temperature source (Auto,
+Average or the selected room). Select a specific Sleep room to pin it overnight.
 
 ## Outdoor compensation and Ke
 

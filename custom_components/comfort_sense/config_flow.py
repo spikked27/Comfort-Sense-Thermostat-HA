@@ -180,7 +180,7 @@ class Editor:
             for k in ("away_temperature","sleep_temperature","boost_temperature")}
         fields.update({vol.Required(k,default=self.config[k]):number(*args) for k,args in {
             "boost_minutes":(1,240,"min"),"away_delay_minutes":(0,180,"min")}.items()})
-        fields[vol.Optional("sleep_room",default=self.config["sleep_room"])]=vol.In({"":"Average",**{r["id"]:r["name"] for r in self.config["rooms"]}})
+        fields[vol.Optional("sleep_room",default=self.config["sleep_room"])]=vol.In({"":"Use thermostat source",**{r["id"]:r["name"] for r in self.config["rooms"]}})
         return self.async_show_form(step_id="presets",data_schema=vol.Schema(fields),description_placeholders={"temperature_unit":self.unit})
 
     async def async_step_relay(self,user_input=None):
